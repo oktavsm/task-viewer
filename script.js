@@ -1,23 +1,39 @@
-// Tunggu sampai semua HTML selesai dimuat
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- 1. AMBIL ELEMEN DARI HTML ---
+    // --- 1. AMBIL ELEMEN & PENGATURAN TEMA ---
     const taskForm = document.getElementById('taskForm');
     const taskInput = document.getElementById('taskInput');
     const taskList = document.getElementById('taskList');
+    const themeToggle = document.getElementById('themeToggle');
+    const body = document.body;
 
-    // --- 2. SIAPIN DATA ---
-    // Cek apakah ada data di localStorage, kalau tidak, buat array kosong
+    // Cek tema yang tersimpan di localStorage
+    if (localStorage.getItem('theme') === 'dark') {
+        body.classList.add('dark-mode');
+        themeToggle.textContent = '☀️';
+    }
+
+    // Event listener untuk tombol tema
+    themeToggle.addEventListener('click', () => {
+        body.classList.toggle('dark-mode');
+        if (body.classList.contains('dark-mode')) {
+            localStorage.setItem('theme', 'dark');
+            themeToggle.textContent = '☀️';
+        } else {
+            localStorage.setItem('theme', 'light');
+            themeToggle.textContent = '🌙';
+        }
+    });
+    
+    // --- 2. SIAPIN DATA TUGAS ---
     let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 
-    // --- 3. FUNGSI UNTUK "NLP LOKAL" ---
-    // Fungsi ini memproses teks inputanmu menjadi data yang terstruktur
+    // --- 3. FUNGSI "NLP LOKAL" (DENGAN SEDIKIT UPGRADE) ---
     function parseTaskInput(text) {
         let taskText = text;
         let deadline = null;
-        let subject = 'Lainnya';
+        let subject = { key: 'lainnya', name: 'Lainnya' }; // Sekarang jadi objek
 
-        // Daftar Mata Kuliah (sesuaikan jika perlu)
         const subjects = {
             'aps': 'Analisis Perancangan Sistem',
             'imk': 'Interaksi Manusia Komputer',
@@ -28,17 +44,15 @@ document.addEventListener('DOMContentLoaded', () => {
             'bindo': 'Bahasa Indonesia'
         };
 
-        // Cek kata kunci mata kuliah
         for (const key in subjects) {
-            const regex = new RegExp(`\\b${key}\\b`, 'i'); // \b untuk "whole word only"
+            const regex = new RegExp(`\\b${key}\\b`, 'i');
             if (regex.test(taskText)) {
-                subject = subjects[key];
-                taskText = taskText.replace(regex, '').trim(); // Hapus kata kunci dari nama tugas
-                break; // Hentikan pencarian jika sudah ketemu
+                subject = { key: key, name: subjects[key] };
+                taskText = taskText.replace(regex, '').trim();
+                break;
             }
         }
         
-        // Cek kata kunci deadline (contoh sederhana)
         const today = new Date();
         if (/besok/i.test(taskText)) {
             const tomorrow = new Date();
@@ -50,24 +64,22 @@ document.addEventListener('DOMContentLoaded', () => {
             taskText = taskText.replace(/hari ini/i, '').trim();
         }
         
-        // Hapus kata 'deadline' jika ada
         taskText = taskText.replace(/deadline/i, '').trim();
 
         return {
-            id: Date.now(), // ID unik berdasarkan waktu
-            text: taskText.charAt(0).toUpperCase() + taskText.slice(1), // Huruf pertama kapital
-            subject: subject,
+            id: Date.now(),
+            text: taskText.charAt(0).toUpperCase() + taskText.slice(1),
+            subject: subject, // Menyimpan objek subject
             deadline: deadline,
             completed: false
         };
     }
 
-    // --- 4. FUNGSI UNTUK TAMPILIN TUGAS ---
-    // Fungsi ini akan menggambar ulang daftar tugas setiap ada perubahan
+    // --- 4. FUNGSI RENDER TUGAS (DENGAN KELAS DINAMIS) ---
     function renderTasks() {
-        taskList.innerHTML = ''; // Kosongkan daftar yang lama
+        taskList.innerHTML = '';
         if (tasks.length === 0) {
-            taskList.innerHTML = '<p style="text-align:center; color:#999;">Belum ada tugas, santai dulu~ 🌴</p>';
+            taskList.innerHTML = '<p style="text-align:center; color:var(--subtle-text-color);">Belum ada tugas, santai dulu~ 🌴</p>';
             return;
         }
 
@@ -79,12 +91,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             li.setAttribute('data-id', task.id);
 
-            // Tampilan HTML untuk satu item tugas
+            // Menambahkan kelas dinamis untuk warna label
+            const subjectClass = `subject-${task.subject.key}`;
+
             li.innerHTML = `
                 <div class="task-content">
                     <div class="task-text-content">${task.text}</div>
                     <div class="task-info">
-                        <span class="task-subject">${task.subject}</span>
+                        <span class="task-subject ${subjectClass}">${task.subject.name}</span>
                         ${task.deadline ? `<span> | Deadline: ${task.deadline}</span>` : ''}
                     </div>
                 </div>
@@ -94,48 +108,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 5. FUNGSI UNTUK SIMPAN DATA ---
-    // Simpan array 'tasks' ke localStorage
+    // --- 5. FUNGSI SIMPAN DATA (TETAP SAMA) ---
     function saveTasks() {
         localStorage.setItem('tasks', JSON.stringify(tasks));
     }
 
-    // --- 6. EVENT LISTENER (PENDENGAR AKSI) ---
-    // Aksi saat form disubmit (tombol "Tambah" diklik atau Enter ditekan)
+    // --- 6. EVENT LISTENERS (TETAP SAMA) ---
     taskForm.addEventListener('submit', (e) => {
-        e.preventDefault(); // Mencegah halaman refresh
+        e.preventDefault();
         const rawText = taskInput.value.trim();
-
         if (rawText === '') return;
-
         const newTask = parseTaskInput(rawText);
-        tasks.unshift(newTask); // Tambah tugas baru ke awal array
-        
-        taskInput.value = ''; // Kosongkan input
+        tasks.unshift(newTask);
+        taskInput.value = '';
         saveTasks();
         renderTasks();
     });
 
-    // Aksi saat item di dalam list diklik (untuk toggle complete atau delete)
     taskList.addEventListener('click', (e) => {
         const id = e.target.closest('.task-item').getAttribute('data-id');
+        if (!id) return;
 
-        // Jika tombol hapus yang diklik
         if (e.target.classList.contains('delete-btn')) {
             tasks = tasks.filter(task => task.id != id);
-        } else { // Jika area lain yang diklik (untuk menandai selesai)
-            tasks = tasks.map(task => {
-                if (task.id == id) {
-                    return { ...task, completed: !task.completed };
-                }
-                return task;
-            });
+        } else {
+            tasks = tasks.map(task => 
+                task.id == id ? { ...task, completed: !task.completed } : task
+            );
         }
         
         saveTasks();
         renderTasks();
     });
 
-    // --- 7. TAMPILKAN TUGAS SAAT PERTAMA KALI DIBUKA ---
+    // --- 7. RENDER AWAL (TETAP SAMA) ---
     renderTasks();
 });
