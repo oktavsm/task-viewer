@@ -80,17 +80,47 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Model AI belum siap. Pastikan API Key sudah benar.");
             return null;
         }
-        const prompt = `Anda adalah asisten cerdas... (Isi prompt sama persis seperti sebelumnya)... Input: "${text}" Output:`;
+        
+        // --- JURUS 1: PROMPT LEBIH TEGAS ---
+        const prompt = `
+            Anda adalah asisten cerdas yang tugasnya mengubah kalimat tugas kuliah acak menjadi data JSON terstruktur.
+            Daftar mata kuliah yang valid adalah: Analisis Perancangan Sistem, Interaksi Manusia dan Komputer, Kecerdasan Artifisial, Algoritma Struktur Data, Bahasa Indonesia, Metode Numerik, Jaringan Komputer.
+            Tugas Anda:
+            1. Baca kalimat input dari pengguna.
+            2. Ekstrak nama tugasnya (taskName).
+            3. Identifikasi mata kuliahnya (subject) dari daftar yang valid. Jika tidak ada, gunakan "Lainnya".
+            4. Tentukan tanggal dan waktu deadline-nya. Ubah ke format ISO 8601 string (YYYY-MM-DDTHH:mm:ss.sssZ). Gunakan tanggal hari ini (${new Date().toISOString()}) sebagai referensi.
+            5. Kembalikan HANYA sebuah objek JSON valid. Jangan tulis penjelasan apapun. Jawabanmu harus selalu diawali dengan { dan diakhiri dengan }.
+
+            Contoh:
+            Input: "kayaknya ada laprak jarkom buat lusa jam 11 malem deh"
+            Output: {"taskName": "Laprak", "subject": "Jaringan Komputer", "deadlineISO": "${new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().replace(/\d{2}:\d{2}\.\d{3}Z$/, '23:00:00.000Z')}"}
+            
+            Sekarang, proses input berikut:
+            Input: "${text}"
+            Output:
+        `;
+
         try {
             const result = await model.generateContent(prompt);
             const response = await result.response;
             const responseText = response.text();
-            const jsonString = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-            return JSON.parse(jsonString);
+            
+            // --- JURUS 2: PARSING JSON LEBIH PINTAR ---
+            // Cari blok teks yang diawali { dan diakhiri }
+            const match = responseText.match(/\{[\s\S]*\}/);
+
+            if (match) {
+                // Jika ketemu, baru kita parse
+                return JSON.parse(match[0]);
+            } else {
+                // Jika tidak ada JSON sama sekali di jawaban AI
+                throw new Error("Tidak ada JSON valid yang ditemukan di jawaban AI.");
+            }
+
         } catch (error) {
-            // --- Kita buat error logging-nya lebih detail ---
-            console.error("Error dari AI API:", error); 
-            alert("Gagal memproses tugas dengan AI. Cek console (F12) untuk detail error. Kemungkinan API belum aktif di Google Cloud atau kunci salah.");
+            console.error("Error dari AI API atau saat parsing:", error);
+            alert("Gagal memproses tugas dengan AI. Cek console (F12) untuk detail error. Jawaban dari AI mungkin tidak valid.");
             return null;
         }
     }
