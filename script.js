@@ -1,12 +1,14 @@
+// script.js (Versi AI)
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- BAGIAN 1 & 2 (TETAP SAMA) ---
     const taskForm = document.getElementById('taskForm');
     const taskInput = document.getElementById('taskInput');
     const taskList = document.getElementById('taskList');
     const themeToggle = document.getElementById('themeToggle');
     const body = document.body;
+    const submitButton = taskForm.querySelector('button[type="submit"]');
 
+    // --- LOGIKA TEMA (TETAP SAMA) ---
     function applyTheme(theme) {
         if (theme === 'dark') {
             body.classList.add('dark-mode');
@@ -16,126 +18,120 @@ document.addEventListener('DOMContentLoaded', () => {
             themeToggle.textContent = '🌙';
         }
     }
-
     const savedTheme = localStorage.getItem('theme') || 'light';
     applyTheme(savedTheme);
-
     themeToggle.addEventListener('click', () => {
         const newTheme = body.classList.contains('dark-mode') ? 'light' : 'dark';
         localStorage.setItem('theme', newTheme);
         applyTheme(newTheme);
     });
     
+    // --- DATA TUGAS (TETAP SAMA) ---
     let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 
-    // --- 3. FUNGSI "NLP LOKAL" v3.0 (THE BIG UPGRADE) ---
-    function parseTaskInput(text) {
-        let taskText = text;
-        let deadline = null;
-        let subject = { key: 'lainnya', name: 'Lainnya' };
+    // --- INILAH OTAK AI BARUNYA ---
+    // Fungsi ini ngobrol dengan Google AI untuk mengekstrak info dari teks
+    async function getStructuredTaskFromAI(text) {
+        // Inisialisasi Google AI dengan kunci dari config.js
+        const { streamText } = await import('https://sdk.vercel.ai/ai');
+        const ai = new google.generativeai.GenerativeAI(API_KEY);
+        const model = ai.getGenerativeModel({ model: "gemini-pro" });
 
-        // Daftar Matkul (tetap sama)
+        // Ini adalah "perintah" atau "briefing" yang kita kasih ke AI
+        const prompt = `
+            Anda adalah asisten cerdas yang tugasnya mengubah kalimat tugas kuliah acak menjadi data JSON terstruktur.
+            Daftar mata kuliah yang valid adalah: Analisis Perancangan Sistem, Interaksi Manusia dan Komputer, Kecerdasan Artifisial, Algoritma Struktur Data, Bahasa Indonesia, Metode Numerik, Jaringan Komputer.
+
+            Tugas Anda:
+            1. Baca kalimat input dari pengguna.
+            2. Ekstrak nama tugasnya (taskName).
+            3. Identifikasi mata kuliahnya (subject) dari daftar yang valid. Jika tidak ada, gunakan "Lainnya".
+            4. Tentukan tanggal dan waktu deadline-nya. Ubah ke format ISO 8601 string (YYYY-MM-DDTHH:mm:ss.sssZ). Gunakan tanggal hari ini (${new Date().toISOString()}) sebagai referensi.
+            5. Kembalikan HANYA sebuah objek JSON valid dengan struktur: { "taskName": "string", "subject": "string", "deadlineISO": "string|null" }
+
+            Contoh:
+            Input: "kayaknya ada laprak jarkom buat lusa jam 11 malem deh"
+            Output: {"taskName": "Laprak", "subject": "Jaringan Komputer", "deadlineISO": "${new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().replace(/\d{2}:\d{2}\.\d{3}Z$/, '23:00:00.000Z')}"}
+
+            Input: "ngerjain essay bindo"
+            Output: {"taskName": "Ngerjain essay", "subject": "Bahasa Indonesia", "deadlineISO": null}
+            
+            Sekarang, proses input berikut:
+            Input: "${text}"
+            Output:
+        `;
+
+        try {
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const responseText = response.text();
+            
+            // Membersihkan & mem-parsing output JSON dari AI
+            const jsonString = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+            return JSON.parse(jsonString);
+
+        } catch (error) {
+            console.error("Error dari AI API:", error);
+            alert("Gagal memproses tugas dengan AI. Coba lagi atau periksa kunci API.");
+            return null;
+        }
+    }
+
+    // --- FORM SUBMIT DENGAN LOGIKA ASYNC ---
+    taskForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const rawText = taskInput.value.trim();
+        if (rawText === '') return;
+
+        // Tampilkan status loading
+        submitButton.disabled = true;
+        submitButton.textContent = 'Memproses...';
+        
+        const structuredTask = await getStructuredTaskFromAI(rawText);
+
+        // Kembalikan tombol ke normal
+        submitButton.disabled = false;
+        submitButton.textContent = 'Tambah';
+
+        if (!structuredTask) return; // Jika AI gagal, hentikan proses
+
+        // Format tanggal dari ISO ke format yang mudah dibaca
+        let deadlineFormatted = null;
+        if (structuredTask.deadlineISO) {
+            const deadlineDate = new Date(structuredTask.deadlineISO);
+            deadlineFormatted = deadlineDate.toLocaleDateString('id-ID', {
+                weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'
+            }).replace(/\./g, ':');
+        }
+
+        // Cari 'key' dari subject untuk pewarnaan
         const subjects = {
             'aps': 'Analisis Perancangan Sistem', 'imk': 'Interaksi Manusia Komputer', 'ai': 'Kecerdasan Artifisial',
             'asd': 'Algoritma Struktur Data', 'metnum': 'Metode Numerik', 'jarkom': 'Jaringan Komputer', 'bindo': 'Bahasa Indonesia'
         };
-
+        let subjectKey = 'lainnya';
         for (const key in subjects) {
-            const regex = new RegExp(`\\b${key}\\b`, 'i');
-            if (regex.test(taskText)) {
-                subject = { key: key, name: subjects[key] };
-                taskText = taskText.replace(regex, '').trim();
+            if (subjects[key] === structuredTask.subject) {
+                subjectKey = key;
                 break;
             }
         }
         
-        // --- PROSES BARU: PENGENALAN TANGGAL TINGKAT LANJUT ---
-        const now = new Date();
-        let deadlineDate = null;
-
-        // Daftar nama bulan dalam Bahasa Indonesia
-        const bulanIndonesia = ['januari', 'februari', 'maret', 'april', 'mei', 'juni', 'juli', 'agustus', 'september', 'oktober', 'november', 'desember'];
-        
-        // Pola Regex untuk berbagai format tanggal
-        const datePatterns = [
-            { regex: /(\d{1,2})\s+(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)/i, handler: match => {
-                const day = parseInt(match[1]);
-                const month = bulanIndonesia.indexOf(match[2].toLowerCase());
-                return new Date(now.getFullYear(), month, day);
-            }},
-            { regex: /(\d+)\s+hari\s+lagi/i, handler: match => {
-                const daysToAdd = parseInt(match[1]);
-                const newDate = new Date();
-                newDate.setDate(now.getDate() + daysToAdd);
-                return newDate;
-            }},
-            { regex: /minggu\s+depan/i, handler: () => {
-                const newDate = new Date();
-                newDate.setDate(now.getDate() + 7);
-                return newDate;
-            }},
-            { regex: /\blusa\b/i, handler: () => {
-                const newDate = new Date();
-                newDate.setDate(now.getDate() + 2);
-                return newDate;
-            }},
-            { regex: /\bbesok\b/i, handler: () => {
-                const newDate = new Date();
-                newDate.setDate(now.getDate() + 1);
-                return newDate;
-            }},
-            { regex: /\bhari\s+ini\b/i, handler: () => new Date() }
-        ];
-
-        // Loop untuk mencari pola tanggal yang cocok
-        for (const pattern of datePatterns) {
-            const match = taskText.match(pattern.regex);
-            if (match) {
-                deadlineDate = pattern.handler(match);
-                taskText = taskText.replace(pattern.regex, '').trim(); // Hapus bagian tanggal dari teks
-                break; // Hentikan jika sudah ketemu
-            }
-        }
-        
-        // Pola Regex untuk waktu (tetap sama)
-        const timeRegex = /(jam|pukul)\s*(\d{1,2})([:.](\d{2}))?\s*(pagi|siang|sore|malam)?/i;
-        const timeMatch = taskText.match(timeRegex);
-
-        if (timeMatch) {
-            if (!deadlineDate) deadlineDate = new Date();
-
-            let hours = parseInt(timeMatch[2], 10);
-            const minutes = timeMatch[4] ? parseInt(timeMatch[4], 10) : 0;
-            const period = timeMatch[5];
-
-            if (period && /malam/i.test(period) && hours < 12) hours += 12;
-            else if (period && /pagi/i.test(period) && hours === 12) hours = 0;
-
-            deadlineDate.setHours(hours, minutes, 0, 0);
-            taskText = taskText.replace(timeRegex, '');
-        }
-        
-        if (deadlineDate) {
-            const options = { weekday: 'long', day: 'numeric', month: 'long' };
-            if (timeMatch) {
-                options.hour = '2-digit';
-                options.minute = '2-digit';
-            }
-            deadline = deadlineDate.toLocaleDateString('id-ID', options).replace(/\./g, ':');
-        }
-
-        taskText = taskText.replace(/deadline/ig, '').replace(/[\s,]+$/, '').trim();
-
-        return {
+        const newTask = {
             id: Date.now(),
-            text: taskText.charAt(0).toUpperCase() + taskText.slice(1),
-            subject: subject,
-            deadline: deadline,
+            text: structuredTask.taskName,
+            subject: { key: subjectKey, name: structuredTask.subject },
+            deadline: deadlineFormatted,
             completed: false
         };
-    }
 
-    // --- SISA KODE (RENDER, SAVE, EVENT LISTENERS) SEMUANYA TETAP SAMA ---
+        tasks.unshift(newTask);
+        taskInput.value = '';
+        saveTasks();
+        renderTasks();
+    });
+
+    // --- SISA KODE (RENDER, SAVE) TIDAK BERUBAH ---
     function renderTasks() {
         taskList.innerHTML = '';
         if (tasks.length === 0) {
@@ -168,18 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function saveTasks() {
         localStorage.setItem('tasks', JSON.stringify(tasks));
     }
-
-    taskForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const rawText = taskInput.value.trim();
-        if (rawText === '') return;
-        const newTask = parseTaskInput(rawText);
-        tasks.unshift(newTask);
-        taskInput.value = '';
-        saveTasks();
-        renderTasks();
-    });
-
+    
     taskList.addEventListener('click', (e) => {
         const targetLi = e.target.closest('.task-item');
         if (!targetLi) return;
