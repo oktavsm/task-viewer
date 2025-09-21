@@ -7,41 +7,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeToggle = document.getElementById('themeToggle');
     const body = document.body;
 
-    // Cek tema yang tersimpan di localStorage
-    if (localStorage.getItem('theme') === 'dark') {
-        body.classList.add('dark-mode');
-        themeToggle.textContent = '☀️';
-    }
-
-    // Event listener untuk tombol tema
-    themeToggle.addEventListener('click', () => {
-        body.classList.toggle('dark-mode');
-        if (body.classList.contains('dark-mode')) {
-            localStorage.setItem('theme', 'dark');
+    function applyTheme(theme) {
+        if (theme === 'dark') {
+            body.classList.add('dark-mode');
             themeToggle.textContent = '☀️';
         } else {
-            localStorage.setItem('theme', 'light');
+            body.classList.remove('dark-mode');
             themeToggle.textContent = '🌙';
         }
+    }
+
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    applyTheme(savedTheme);
+
+    themeToggle.addEventListener('click', () => {
+        const newTheme = body.classList.contains('dark-mode') ? 'light' : 'dark';
+        localStorage.setItem('theme', newTheme);
+        applyTheme(newTheme);
     });
     
     // --- 2. SIAPIN DATA TUGAS ---
     let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 
-    // --- 3. FUNGSI "NLP LOKAL" (DENGAN SEDIKIT UPGRADE) ---
+    // --- 3. FUNGSI "NLP LOKAL" v2.0 (DENGAN PENGENAL WAKTU) ---
     function parseTaskInput(text) {
         let taskText = text;
         let deadline = null;
-        let subject = { key: 'lainnya', name: 'Lainnya' }; // Sekarang jadi objek
+        let subject = { key: 'lainnya', name: 'Lainnya' };
 
         const subjects = {
-            'aps': 'Analisis Perancangan Sistem',
-            'imk': 'Interaksi Manusia Komputer',
-            'ai': 'Kecerdasan Artifisial',
-            'asd': 'Algoritma Struktur Data',
-            'metnum': 'Metode Numerik',
-            'jarkom': 'Jaringan Komputer',
-            'bindo': 'Bahasa Indonesia'
+            'aps': 'Analisis Perancangan Sistem', 'imk': 'Interaksi Manusia Komputer', 'ai': 'Kecerdasan Artifisial',
+            'asd': 'Algoritma Struktur Data', 'metnum': 'Metode Numerik', 'jarkom': 'Jaringan Komputer', 'bindo': 'Bahasa Indonesia'
         };
 
         for (const key in subjects) {
@@ -53,46 +49,81 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        const today = new Date();
-        if (/besok/i.test(taskText)) {
-            const tomorrow = new Date();
-            tomorrow.setDate(today.getDate() + 1);
-            deadline = tomorrow.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
-            taskText = taskText.replace(/besok/i, '').trim();
-        } else if (/hari ini/i.test(taskText)) {
-            deadline = today.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
-            taskText = taskText.replace(/hari ini/i, '').trim();
+        // --- PROSES BARU: MENGENALI TANGGAL & WAKTU ---
+        const now = new Date();
+        let deadlineDate = null;
+
+        // Kenali tanggal dulu (lusa, besok, hari ini)
+        if (/\blusa\b/i.test(taskText)) {
+            deadlineDate = new Date();
+            deadlineDate.setDate(now.getDate() + 2);
+            taskText = taskText.replace(/\blusa\b/i, '');
+        } else if (/\bbesok\b/i.test(taskText)) {
+            deadlineDate = new Date();
+            deadlineDate.setDate(now.getDate() + 1);
+            taskText = taskText.replace(/\bbesok\b/i, '');
+        } else if (/\bhari ini\b/i.test(taskText)) {
+            deadlineDate = new Date();
+            taskText = taskText.replace(/\bhari ini\b/i, '');
+        }
+
+        // Kenali waktu (jam 23.59, 10 malam, dll)
+        const timeRegex = /(jam|pukul)\s*(\d{1,2})([:.](\d{2}))?\s*(pagi|siang|sore|malam)?/i;
+        const timeMatch = taskText.match(timeRegex);
+
+        if (timeMatch) {
+            if (!deadlineDate) deadlineDate = new Date(); // Jika tgl tidak disebut, anggap hari ini
+
+            let hours = parseInt(timeMatch[2], 10);
+            const minutes = timeMatch[4] ? parseInt(timeMatch[4], 10) : 0;
+            const period = timeMatch[5];
+
+            if (period && /malam/i.test(period) && hours < 12) {
+                hours += 12;
+            } else if (period && /pagi/i.test(period) && hours === 12) {
+                hours = 0; // jam 12 pagi = 00:00
+            }
+
+            deadlineDate.setHours(hours, minutes, 0, 0);
+            taskText = taskText.replace(timeRegex, '');
         }
         
-        taskText = taskText.replace(/deadline/i, '').trim();
+        // Format hasil deadline menjadi teks yang rapi
+        if (deadlineDate) {
+            const options = { weekday: 'long', day: 'numeric', month: 'long' };
+            if (timeMatch) { // Jika ada waktunya, tambahkan format jam
+                options.hour = '2-digit';
+                options.minute = '2-digit';
+            }
+            deadline = deadlineDate.toLocaleDateString('id-ID', options).replace(/\./g, ':');
+        }
+
+        taskText = taskText.replace(/deadline/ig, '').replace(/[\s,]+$/, '').trim();
 
         return {
             id: Date.now(),
             text: taskText.charAt(0).toUpperCase() + taskText.slice(1),
-            subject: subject, // Menyimpan objek subject
+            subject: subject,
             deadline: deadline,
             completed: false
         };
     }
 
-    // --- 4. FUNGSI RENDER TUGAS (DENGAN KELAS DINAMIS) ---
+    // --- 4. FUNGSI RENDER TUGAS (DENGAN PERBAIKAN) ---
     function renderTasks() {
         taskList.innerHTML = '';
         if (tasks.length === 0) {
-            taskList.innerHTML = '<p style="text-align:center; color:var(--subtle-text-color);">Belum ada tugas, santai dulu~ 🌴</p>';
+            taskList.innerHTML = `<p style="text-align:center; color:var(--subtle-text-color);">Belum ada tugas, santai dulu~ 🌴</p>`;
             return;
         }
 
         tasks.forEach(task => {
             const li = document.createElement('li');
             li.className = 'task-item';
-            if (task.completed) {
-                li.classList.add('completed');
-            }
+            if (task.completed) li.classList.add('completed');
             li.setAttribute('data-id', task.id);
-
-            // Menambahkan kelas dinamis untuk warna label
-            const subjectClass = `subject-${task.subject.key}`;
+            
+            const subjectClass = `subject-${task.subject.key}`; // Ini bagian penting yang diperbaiki
 
             li.innerHTML = `
                 <div class="task-content">
@@ -108,12 +139,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 5. FUNGSI SIMPAN DATA (TETAP SAMA) ---
+    // --- Sisa kode (fungsi simpan & event listener) tetap sama persis ---
     function saveTasks() {
         localStorage.setItem('tasks', JSON.stringify(tasks));
     }
 
-    // --- 6. EVENT LISTENERS (TETAP SAMA) ---
     taskForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const rawText = taskInput.value.trim();
@@ -126,8 +156,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     taskList.addEventListener('click', (e) => {
-        const id = e.target.closest('.task-item').getAttribute('data-id');
-        if (!id) return;
+        const targetLi = e.target.closest('.task-item');
+        if (!targetLi) return;
+        const id = targetLi.getAttribute('data-id');
 
         if (e.target.classList.contains('delete-btn')) {
             tasks = tasks.filter(task => task.id != id);
@@ -136,11 +167,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 task.id == id ? { ...task, completed: !task.completed } : task
             );
         }
-        
         saveTasks();
         renderTasks();
     });
 
-    // --- 7. RENDER AWAL (TETAP SAMA) ---
     renderTasks();
 });
