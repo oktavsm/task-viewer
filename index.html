@@ -7,21 +7,28 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="apiKeyModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Masukkan API Key Google AI</h2>
+            <p>Untuk menggunakan fitur AI, kamu perlu memasukkan API Key-mu. Kunci akan disimpan di browser-mu saja.</p>
+            <input type="password" id="apiKeyInput" placeholder="Paste API Key di sini...">
+            <button id="saveApiKeyBtn">Simpan & Mulai</button>
+            <a href="https://aistudio.google.com/app/apikey" target="_blank">Belum punya kunci? Dapatkan di sini.</a>
+        </div>
+    </div>
+
     <div class="container">
         <header>
             <h1>📝 Catatan Tugasku</h1>
             <button id="themeToggle" title="Ganti Tema">🌙</button>
         </header>
         <form id="taskForm">
-            <input type="text" id="taskInput" placeholder="Contoh: Laporan praktikum Jarkom deadline besok..." required>
+            <input type="text" id="taskInput" placeholder="Tulis tugasmu sebebasnya di sini..." required>
             <button type="submit">Tambah</button>
         </form>
-        <ul id="taskList">
-            </ul>
+        <ul id="taskList"></ul>
     </div>
 
     <script type="module" src="script.js"></script>
-    <script src="config.js"></script>
-
 </body>
 </html>
