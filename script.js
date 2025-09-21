@@ -23,7 +23,8 @@ const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
 // --- Fungsi Inisialisasi AI ---
 function initializeAI(apiKey) {
     ai = new GoogleGenerativeAI(apiKey);
-    model = ai.getGenerativeModel({ model: "gemini-pro" });
+    // KODE BARU (ganti menjadi ini)
+    model = ai.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 }
 
 // --- Fungsi Pengecekan Kunci API ---
@@ -71,9 +72,9 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('theme', newTheme);
         applyTheme(newTheme);
     });
-    
+
     let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
-    
+
     async function getStructuredTaskFromAI(text) {
         if (!model) {
             alert("Model AI belum siap. Pastikan API Key sudah benar.");
@@ -87,8 +88,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const jsonString = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(jsonString);
         } catch (error) {
-            console.error("Error dari AI API:", error);
-            alert("Gagal memproses tugas dengan AI. Coba lagi atau periksa kunci API.");
+            // --- Kita buat error logging-nya lebih detail ---
+            console.error("Error dari AI API:", error); 
+            alert("Gagal memproses tugas dengan AI. Cek console (F12) untuk detail error. Kemungkinan API belum aktif di Google Cloud atau kunci salah.");
             return null;
         }
     }
@@ -108,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const deadlineDate = new Date(structuredTask.deadlineISO);
             deadlineFormatted = deadlineDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':');
         }
-        const subjects = {'aps':'Analisis Perancangan Sistem','imk':'Interaksi Manusia Komputer','ai':'Kecerdasan Artifisial','asd':'Algoritma Struktur Data','metnum':'Metode Numerik','jarkom':'Jaringan Komputer','bindo':'Bahasa Indonesia'};
+        const subjects = { 'aps': 'Analisis Perancangan Sistem', 'imk': 'Interaksi Manusia Komputer', 'ai': 'Kecerdasan Artifisial', 'asd': 'Algoritma Struktur Data', 'metnum': 'Metode Numerik', 'jarkom': 'Jaringan Komputer', 'bindo': 'Bahasa Indonesia' };
         let subjectKey = 'lainnya';
         for (const key in subjects) { if (subjects[key] === structuredTask.subject) { subjectKey = key; break; } }
         const newTask = { id: Date.now(), text: structuredTask.taskName, subject: { key: subjectKey, name: structuredTask.subject }, deadline: deadlineFormatted, completed: false };
@@ -136,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const targetLi = e.target.closest('.task-item');
         if (!targetLi) return;
         const id = targetLi.getAttribute('data-id');
-        if (e.target.classList.contains('delete-btn')) { tasks = tasks.filter(task => task.id != id); } else { tasks = tasks.map(task => task.id == id ? { ...task, completed: !task.completed } : task ); }
+        if (e.target.classList.contains('delete-btn')) { tasks = tasks.filter(task => task.id != id); } else { tasks = tasks.map(task => task.id == id ? { ...task, completed: !task.completed } : task); }
         saveTasks();
         renderTasks();
     });
