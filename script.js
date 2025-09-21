@@ -84,18 +84,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- JURUS 1: PROMPT LEBIH TEGAS ---
         const prompt = `
             Anda adalah asisten cerdas yang tugasnya mengubah kalimat tugas kuliah acak menjadi data JSON terstruktur.
-            Daftar mata kuliah yang valid adalah: Analisis Perancangan Sistem, Interaksi Manusia dan Komputer, Kecerdasan Artifisial, Algoritma Struktur Data, Bahasa Indonesia, Metode Numerik, Jaringan Komputer.
+            Daftar mata kuliah yang valid adalah: Analisis Perancangan Sistem(APS atau aps), Interaksi Manusia dan Komputer(IMK atau imk), Kecerdasan Artifisial(AI atau ai), Algoritma Struktur Data(ASD atau asd), Bahasa Indonesia(Bindo atau bindo atau bind), Metode Numerik(METNUM atau metnum), Jaringan Komputer(JARKOM atau jarkom).
             Tugas Anda:
             1. Baca kalimat input dari pengguna.
-            2. Ekstrak nama tugasnya (taskName).
+            2. Ekstrak nama tugasnya (taskName) dan rapikan pada output.
             3. Identifikasi mata kuliahnya (subject) dari daftar yang valid. Jika tidak ada, gunakan "Lainnya".
             4. Tentukan tanggal dan waktu deadline-nya. Ubah ke format ISO 8601 string (YYYY-MM-DDTHH:mm:ss.sssZ). Gunakan tanggal hari ini (${new Date().toISOString()}) sebagai referensi.
             5. Kembalikan HANYA sebuah objek JSON valid. Jangan tulis penjelasan apapun. Jawabanmu harus selalu diawali dengan { dan diakhiri dengan }.
 
             Contoh:
-            Input: "kayaknya ada laprak jarkom buat lusa jam 11 malem deh"
-            Output: {"taskName": "Laprak", "subject": "Jaringan Komputer", "deadlineISO": "${new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().replace(/\d{2}:\d{2}\.\d{3}Z$/, '23:00:00.000Z')}"}
-            
+            Input: "kayaknya ada laprak jarkom bab 3 buat lusa jam 11 malem deh"
+            Output: {"taskName": "Laporan Praktikum Bab 3", "subject": "Jaringan Komputer", "deadlineISO": "${new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().replace(/\d{2}:\d{2}\.\d{3}Z$/, '23:00:00.000Z')}"}
             Sekarang, proses input berikut:
             Input: "${text}"
             Output:
