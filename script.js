@@ -34,8 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function getStructuredTaskFromAI(text) {
         // Inisialisasi Google AI dengan kunci dari config.js
         const { streamText } = await import('https://sdk.vercel.ai/ai');
-        const ai = new google.generativeai.GenerativeAI(API_KEY);
-        const model = ai.getGenerativeModel({ model: "gemini-pro" });
+        const ai = new window.GoogleGenerativeAI(API_KEY);
+        // const model = ai.getGenerativeModel({ model: "gemini-pro" });
 
         // Ini adalah "perintah" atau "briefing" yang kita kasih ke AI
         const prompt = `

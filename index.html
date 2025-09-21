@@ -20,7 +20,11 @@
             </ul>
     </div>
 
-   <script src="https://sdk.vercel.ai/ai.js"></script>
+    <script type="module">
+        import { GoogleGenerativeAI } from "https://unpkg.com/@google/generative-ai/dist/index.js";
+        window.GoogleGenerativeAI = GoogleGenerativeAI;
+    </script>
+    
     <script src="config.js"></script>
     <script src="script.js"></script>
 </body>
