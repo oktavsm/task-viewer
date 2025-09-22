@@ -61,54 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Sisa kode lainnya (tema, event listener form, render, dll) ---
     // (Kode di bawah ini sama persis dengan versi sebelumnya, tidak perlu diubah)
-    // [BARU] Fungsi untuk update judul tab
-    function updateTabTitle() {
-        const now = new Date();
-        // Set jam ke awal hari untuk perbandingan tanggal yang adil
-        now.setHours(0, 0, 0, 0); 
-        
-        const urgentTaskCount = tasks.filter(task => {
-            if (!task.deadline || task.completed) return false;
-            // Ambil tanggal dari string deadline yang diformat
-            // Ini asumsi formatnya 'Senin, 22 September 2025, 23.59'
-            // Kita butuh cara untuk mengubahnya kembali ke objek Date
-            // Mari kita simpan deadlineISO di objek task untuk ini
-            const deadlineDate = new Date(task.deadlineISO);
-            deadlineDate.setHours(0, 0, 0, 0);
-            
-            // Tugas dianggap mendesak jika deadline-nya hari ini atau sudah lewat
-            return deadlineDate <= now;
-        }).length;
-
-        if (urgentTaskCount > 0) {
-            document.title = `(${urgentTaskCount}) Catatan Tugasku`;
-        } else {
-            document.title = 'Catatan Tugasku';
-        }
-    }
-
-    // [BARU] Fungsi untuk membuat link Google Calendar
-    function generateGoogleCalendarLink(task) {
-        if (!task.deadlineISO) return '#';
-
-        const startDate = new Date(task.deadlineISO);
-        // Buat acara berlangsung selama 1 jam sebelum deadline
-        const endDate = new Date(startDate.getTime() - 60 * 60 * 1000);
-
-        // Format tanggal ke YYYYMMDDTHHMMSSZ yang dibutuhkan Google
-        const formatDateForGoogle = (date) => {
-            return date.toISOString().replace(/-|:|\.\d{3}/g, '');
-        };
-
-        const title = encodeURIComponent(task.text);
-        const details = encodeURIComponent(
-            `Tugas untuk mata kuliah: ${task.subject.name}\n\nSub-tugas:\n${task.subtasks.map(st => `- ${st.text}`).join('\n')}`
-        );
-        const startTime = formatDateForGoogle(endDate);
-        const endTime = formatDateForGoogle(startDate);
-
-        return `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startTime}/${endTime}&details=${details}`;
-    }
+    
     function applyTheme(theme) {
         if (theme === 'dark') {
             body.classList.add('dark-mode');
@@ -286,11 +239,10 @@ document.addEventListener('DOMContentLoaded', () => {
             text: structuredTask.taskName,
             subject: { key: subjectInfo.key, name: subjectInfo.name },
             deadline: deadlineFormatted,
-            deadlineISO: structuredTask.deadlineISO, // [PENTING] Simpan ISO string
             completed: false,
             subtasks: subtasks,
-            priority: structuredTask.priority || 'Biasa',
-            tags: structuredTask.tags || []
+            priority: structuredTask.priority || 'Biasa', // Fallback jika AI tidak memberi prioritas
+            tags: structuredTask.tags || [] // Fallback jika AI tidak memberi tag
         };
         tasks.unshift(newTask);
         taskInput.value = '';
@@ -351,32 +303,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button class="delete-btn">🗑️</button>
                 </div>
             `;
-
-            let calendarButtonHTML = '';
-            if (task.deadline) {
-                const calendarLink = generateGoogleCalendarLink(task);
-                calendarButtonHTML = `<a href="${calendarLink}" target="_blank" class="add-to-calendar-btn" title="Tambah ke Kalender">🗓️</a>`;
-            }
-
-            li.innerHTML = `
-                <div class="task-content">
-                    ...
-                </div>
-                <div class="task-actions">
-                    ${calendarButtonHTML} <button class="deep-dive-btn" data-task-text="${task.text}">🪄</button>
-                    <button class="delete-btn">🗑️</button>
-                </div>
-            `;
-
-
             taskList.appendChild(li);
         });
     }
 
 
-    function saveTasks() { localStorage.setItem('tasks', JSON.stringify(tasks)); 
-        updateTabTitle(); // Panggil juga di sini untuk perubahan status
-    }
+    function saveTasks() { localStorage.setItem('tasks', JSON.stringify(tasks)); }
     taskList.addEventListener('click', (e) => {
         const target = e.target;
         const taskLi = target.closest('.task-item');
