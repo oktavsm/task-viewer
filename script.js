@@ -256,7 +256,9 @@ document.addEventListener('DOMContentLoaded', () => {
         tasks.forEach(task => {
             const li = document.createElement('li');
 
-            const priorityClass = `priority-${task.priority.toLowerCase()}`;
+            // KODE BARU (Anti-Error):
+            const priority = task.priority || 'Biasa'; // Kasih nilai default 'Biasa' jika prioritas tidak ada
+            const priorityClass = `priority-${priority.toLowerCase()}`;
             li.className = `task-item ${priorityClass}`;
             if (task.completed) li.classList.add('completed');
             li.setAttribute('data-id', task.id);
