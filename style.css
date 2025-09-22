@@ -331,3 +331,22 @@ button[type="submit"]:hover {
     margin-right: 5px;
     border: 1px solid var(--border-color);
 }
+
+/* style.css (Tambahkan ini di dalam .task-actions atau sejajar dengan .deep-dive-btn) */
+
+.add-to-calendar-btn {
+    border: none;
+    background: none;
+    color: #34a853; /* Warna khas Google Calendar */
+    font-size: 20px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    margin-right: 5px;
+}
+.task-item:hover .add-to-calendar-btn {
+    opacity: 1;
+}
+.add-to-calendar-btn:hover {
+    transform: scale(1.2);
+}
