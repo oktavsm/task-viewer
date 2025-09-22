@@ -105,16 +105,18 @@ document.addEventListener('DOMContentLoaded', () => {
             Tugas Anda:
             1. Baca kalimat input dari pengguna.
             2. Ekstrak nama tugasnya (taskName) dan rapikan pada output.
-            3. Identifikasi mata kuliahnya (subject) dari daftar yang valid. Jika tidak ada, gunakan "Lainnya".
-            4. Tentukan tanggal dan waktu deadline berdasarkan input pengguna dan zona waktu mereka (${timezoneString}).
-            5. Konversikan tanggal dan waktu deadline tersebut ke format ISO 8601 string yang sepenuhnya sudah disesuaikan ke UTC (berakhir dengan 'Z').
-            5. Kembalikan HANYA sebuah objek JSON valid. Jangan tulis penjelasan apapun. Jawabanmu harus selalu diawali dengan { dan diakhiri dengan }.
+            3. Identifikasi mata kuliahnya (subject) dari daftar yang valid. Jika tidak ada, temukan kunci yang sesuai misal "Lifestyle", "Kesehatan" dll.
+            4. Tentukan tingkat prioritasnya ('Kritis', 'Penting', 'Biasa') berdasarkan kata kunci (e.g., ujian, kuis, dadakan = Kritis; tugas, laporan = Penting; cicil, baca = Biasa) dan kedekatan deadline.
+            5. Ekstrak 1-2 kata kunci sebagai tag (dalam bentuk array of strings).
+            6. Tentukan tanggal dan waktu deadline berdasarkan input pengguna dan zona waktu mereka (${timezoneString}).
+            7. Konversikan tanggal dan waktu deadline tersebut ke format ISO 8601 string yang sepenuhnya sudah disesuaikan ke UTC (berakhir dengan 'Z').
+            8. Kembalikan HANYA sebuah objek JSON valid dengan struktur: {"taskName": string, "subject": string, "deadlineISO": string|null, "priority": string, "tags": string[]}. Jawabanmu harus selalu diawali dengan { dan diakhiri dengan }.Jangan tulis penjelasan apapun.
 
             Contoh:
             Contoh (dengan asumsi pengguna di ${timezoneString}):
             AI harus berpikir: "10 malam di ${timezoneString} adalah jam ${22 - offsetHours}:00 UTC".
             Input: "kayaknya ada laprak jarkom bab 3 buat besok jam 10 malem deh"
-            Output: {"taskName": "Laporan Praktikum Bab 3", "subject": "Jaringan Komputer", "deadlineISO": "YYYY-MM-DDTHH:${22 - offsetHours}:00:00.000Z"} // (Tanggal disesuaikan)
+            Output: {"taskName": "Laporan Praktikum Bab 3", "subject": "Jaringan Komputer", "deadlineISO": "YYYY-MM-DDTHH:${22 - offsetHours}:00:00.000Z", "priority": "Penting", "tags": ["laprak", "jarkom"]} // (Tanggal disesuaikan)
             Sekarang, proses input berikut:
             Input: "${text}"
             Output:
@@ -238,7 +240,9 @@ document.addEventListener('DOMContentLoaded', () => {
             subject: { key: subjectInfo.key, name: subjectInfo.name },
             deadline: deadlineFormatted,
             completed: false,
-            subtasks: subtasks // Tambahkan data sub-tugas
+            subtasks: subtasks,
+            priority: structuredTask.priority || 'Biasa', // Fallback jika AI tidak memberi prioritas
+            tags: structuredTask.tags || [] // Fallback jika AI tidak memberi tag
         };
         tasks.unshift(newTask);
         taskInput.value = '';
@@ -251,7 +255,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tasks.length === 0) { taskList.innerHTML = `<p style="text-align:center; color:var(--subtle-text-color);">Belum ada tugas, santai dulu~ 🌴</p>`; return; }
         tasks.forEach(task => {
             const li = document.createElement('li');
-            li.className = 'task-item';
+
+            const priorityClass = `priority-${task.priority.toLowerCase()}`;
+            li.className = `task-item ${priorityClass}`;
             if (task.completed) li.classList.add('completed');
             li.setAttribute('data-id', task.id);
             const subjectClass = `subject-${task.subject.key}`;
@@ -270,6 +276,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 subtasksHTML += '</ul>';
             }
+            let tagsHTML = '';
+            if (task.tags && task.tags.length > 0) {
+                tagsHTML = '<div class="task-tags">';
+                task.tags.forEach(tag => {
+                    tagsHTML += `<span class="task-tag">#${tag}</span>`;
+                });
+                tagsHTML += '</div>';
+            }
+
+            // Di dalam fungsi renderTasks()
 
             li.innerHTML = `
                 <div class="task-content">
@@ -278,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span class="task-subject subject-${task.subject.key}">${task.subject.name}</span>
                         ${task.deadline ? `<span> | Deadline: ${task.deadline}</span>` : ''}
                     </div>
-                    ${subtasksHTML}
+                    ${tagsHTML} ${subtasksHTML}
                 </div>
                 <div class="task-actions">
                     <button class="deep-dive-btn" data-task-text="${task.text}">🪄</button>

@@ -299,3 +299,35 @@ button[type="submit"]:hover {
     color: var(--subtle-text-color);
     cursor: pointer;
 }
+
+/* style.css (Tambahkan ini di paling bawah) */
+
+/* --- Style untuk Prioritas --- */
+.task-item {
+    border-left: 5px solid transparent; /* Dasar untuk prioritas */
+    padding-left: 10px;
+}
+.task-item.priority-kritis {
+    border-left-color: #e74c3c; /* Merah */
+}
+.task-item.priority-penting {
+    border-left-color: #f39c12; /* Oranye */
+}
+.task-item.priority-biasa {
+    border-left-color: #3498db; /* Biru */
+}
+
+/* --- Style untuk Tag --- */
+.task-tags {
+    margin-top: 8px;
+}
+.task-tag {
+    display: inline-block;
+    background-color: var(--bg-color);
+    color: var(--subtle-text-color);
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    margin-right: 5px;
+    border: 1px solid var(--border-color);
+}
