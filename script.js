@@ -117,7 +117,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const offsetMinutes = new Date().getTimezoneOffset();
         const offsetHours = -offsetMinutes / 60;
         const timezoneString = `GMT${offsetHours >= 0 ? '+' : ''}${offsetHours}`;
-        const prompt = `Anda adalah asisten akademik... (Isi prompt lengkap sama seperti sebelumnya)... Input: "${text}" Output:`;
+        const prompt = `
+            Anda adalah asisten cerdas yang tugasnya mengubah kalimat tugas kuliah acak menjadi data JSON terstruktur.
+            Daftar mata kuliah yang valid adalah: Analisis Perancangan Sistem(APS atau aps), Interaksi Manusia dan Komputer(IMK atau imk), Kecerdasan Artifisial(AI atau ai), Algoritma Struktur Data(ASD atau asd), Bahasa Indonesia(Bindo atau bindo atau bind), Metode Numerik(METNUM atau metnum), Jaringan Komputer(JARKOM atau jarkom).
+            
+            PENTING: Pengguna saat ini berada di zona waktu ${timezoneString}. Semua input waktu dari pengguna harus diinterpretasikan dalam zona waktu ini.
+            Tanggal dan waktu referensi saat ini adalah: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}.
+
+            
+            Tugas Anda:
+            1. Baca kalimat input dari pengguna.
+            2. Ekstrak nama tugasnya (taskName) dan rapikan pada output.
+            3. Identifikasi mata kuliahnya (subject) dari daftar yang valid. Jika tidak ada, temukan kunci yang sesuai misal "Lifestyle", "Kesehatan" dll.
+            4. Tentukan tingkat prioritasnya ('Kritis', 'Penting', 'Biasa') berdasarkan kata kunci (e.g., ujian, kuis, dadakan = Kritis; tugas, laporan = Penting; cicil, baca = Biasa) dan kedekatan deadline.
+            5. Ekstrak 1-2 kata kunci sebagai tag (dalam bentuk array of strings).
+            6. Tentukan tanggal dan waktu deadline berdasarkan input pengguna dan zona waktu mereka (${timezoneString}).
+            7. Konversikan tanggal dan waktu deadline tersebut ke format ISO 8601 string yang sepenuhnya sudah disesuaikan ke UTC (berakhir dengan 'Z').
+            8. Kembalikan HANYA sebuah objek JSON valid dengan struktur: {"taskName": string, "subject": string, "deadlineISO": string|null, "priority": string, "tags": string[]}. Jawabanmu harus selalu diawali dengan { dan diakhiri dengan }.Jangan tulis penjelasan apapun.
+
+            Contoh:
+            Contoh (dengan asumsi pengguna di ${timezoneString}):
+            AI harus berpikir: "10 malam di ${timezoneString} adalah jam ${22 - offsetHours}:00 UTC".
+            Input: "kayaknya ada laprak jarkom bab 3 buat besok jam 10 malem deh"
+            Output: {"taskName": "Laporan Praktikum Bab 3", "subject": "Jaringan Komputer", "deadlineISO": "YYYY-MM-DDTHH:${22 - offsetHours}:00:00.000Z", "priority": "Penting", "tags": ["laprak", "jarkom"]} // (Tanggal disesuaikan)
+            Sekarang, proses input berikut:
+            Input: "${text}"
+            Output:
+        `;
         try {
             const result = await model.generateContent(prompt);
             const response = await result.response;
@@ -134,7 +160,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function generateSubtasks(taskName) {
         if (!model) return [];
-        const prompt = `Kamu adalah manajer proyek ahli... (Isi prompt sub-tugas sama seperti sebelumnya)... Input: "${taskName}" Output:`;
+        const prompt = `
+            Kamu adalah seorang manajer proyek yang ahli. Berdasarkan tugas utama ini: "${taskName}", pecahlah menjadi 3 sampai 5 sub-tugas yang logis, singkat, dan bisa dikerjakan.
+            Kembalikan hasilnya dalam format JSON array of strings.
+            Contoh:
+            Input: "Buat presentasi IMK tentang 10 Usability Heuristics"
+            Output: ["Riset 10 Usability Heuristics", "Cari studi kasus untuk tiap heuristic", "Buat outline presentasi", "Desain slide", "Latihan presentasi"]
+
+            Input: "${taskName}"
+            Output:
+        `;
         try {
             const result = await model.generateContent(prompt);
             const response = await result.response;
@@ -153,7 +188,13 @@ document.addEventListener('DOMContentLoaded', () => {
         deepDiveTitle.textContent = `Menganalisis "${taskName}"...`;
         deepDiveResult.innerHTML = `<p>Sedang bertanya pada AI...</p>`;
         deepDiveModal.classList.add('show');
-        const prompt = `Jelaskan secara singkat... (Isi prompt deep dive sama seperti sebelumnya)...`;
+        const prompt = `
+            Jelaskan secara singkat dalam satu atau dua kalimat, seolah untuk mahasiswa, topik akademis berikut: "${taskName}".
+            Kemudian, berikan 3-5 kata kunci (keywords) yang relevan untuk melakukan riset online tentang topik ini.
+            Kembalikan hasilnya dalam format JSON: {"summary": "...", "keywords": ["...", "..."]}.
+            Jangan tulis penjelasan apapun, hanya JSON.
+        `;
+        
         try {
             const result = await model.generateContent(prompt);
             const response = await result.response;
