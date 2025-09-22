@@ -17,18 +17,27 @@
         </div>
     </div>
 
+    <div id="deepDiveModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="close-btn" id="closeDeepDiveBtn">&times;</button>
+            <h2 id="deepDiveTitle">Hasil Deep Dive</h2>
+            <div id="deepDiveResult">
+                </div>
+        </div>
+    </div>
+
     <div class="container">
         <header>
             <h1>📝 Catatan Tugasku</h1>
             <button id="themeToggle" title="Ganti Tema">🌙</button>
         </header>
         <form id="taskForm">
-            <input type="text" id="taskInput" placeholder="Tulis tugasmu sebebasnya di sini..." required>
+            <input type="text" id="taskInput" placeholder="Tulis tugas besarmu di sini..." required>
             <button type="submit">Tambah</button>
         </form>
         <ul id="taskList"></ul>
     </div>
 
-    <script type="module" src="script.js"></script>
-</body>
+    <script type="module" src="script.js?v=2.0"></script>
+    </body>
 </html>
