@@ -37,8 +37,20 @@
             <button id="themeToggle" title="Ganti Tema">🌙</button>
         </header>
         <form id="taskForm">
-            <input type="text" id="taskInput" placeholder="Tulis tugas besarmu di sini..." required>
-            <button type="submit">Tambah</button>
+            <input type="text" id="taskInput" placeholder="Tulis nama tugas utamamu di sini..." required>
+
+            <button type="button" id="toggleDetailsBtn">Tambah Detail (Deskripsi & Sub-tugas)</button>
+
+            <div id="taskDetails" class="details-section">
+                <textarea id="taskDescription" placeholder="Tambahkan deskripsi singkat di sini..."></textarea>
+                <div class="subtask-adder">
+                    <input type="text" id="subtaskInput" placeholder="Tulis sub-tugas baru...">
+                    <button type="button" id="addSubtaskBtn">Tambah Sub-tugas</button>
+                </div>
+                <ul id="pendingSubtasksList"></ul>
+            </div>
+
+            <button type="submit">Simpan Tugas</button>
         </form>
         <ul id="taskList"></ul>
     </div>

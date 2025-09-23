@@ -350,3 +350,65 @@ button[type="submit"]:hover {
 .add-to-calendar-btn:hover {
     transform: scale(1.2);
 }
+
+/* style.css (Tambahkan ini & ganti style .close-btn) */
+
+/* ... (semua style lama tetap ada) ... */
+
+/* [BARU] Style untuk Form Input yang Di-upgrade */
+#toggleDetailsBtn {
+    width: 100%;
+    margin-top: 10px;
+    background-color: transparent;
+    border: 1px dashed var(--border-color);
+    color: var(--subtle-text-color);
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.details-section {
+    display: none; /* Sembunyi default */
+    margin-top: 15px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 15px;
+}
+.details-section.show {
+    display: block; /* Tampilkan jika ada kelas .show */
+}
+#taskDescription {
+    width: 100%;
+    min-height: 80px;
+    margin-bottom: 10px;
+    /* Style lainnya mirip #taskInput */
+    box-sizing: border-box; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background-color: var(--bg-color); color: var(--text-color);
+}
+.subtask-adder {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+#subtaskInput { flex-grow: 1; /* Style lainnya mirip #taskInput */ padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background-color: var(--bg-color); color: var(--text-color); }
+#addSubtaskBtn { /* Style lainnya mirip tombol submit */ padding: 12px 20px; border: none; background-color: var(--accent-hover); color: white; font-size: 14px; border-radius: 8px; cursor: pointer; }
+#pendingSubtasksList {
+    list-style: none;
+    padding: 0;
+    font-size: 14px;
+}
+#pendingSubtasksList li {
+    padding: 5px;
+    background-color: var(--bg-color);
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
+
+/* [PERBAIKAN] Style untuk Tombol Close Modal */
+.modal-content {
+    position: relative; /* Ini kuncinya agar tombol close mengacu ke sini */
+}
+.close-btn {
+    position: absolute; /* Tetap absolute */
+    top: 10px;
+    right: 15px;
+    /* Style lainnya tetap sama */
+    background: none; border: none; font-size: 28px; color: var(--subtle-text-color); cursor: pointer;
+}
