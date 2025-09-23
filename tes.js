@@ -1,152 +1,176 @@
-// script.js (Versi dengan Prioritas & Tag Otomatis)
+// script.js (Versi dengan Alur Kerja Edit Post-Creation)
 
 import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
-// (Deklarasi variabel global dan DOM Elements sama persis seperti sebelumnya)
 let ai, model, userApiKey;
-const taskForm = document.getElementById('taskForm');
-// ... dan seterusnya ...
 
-// (Semua fungsi inisialisasi, API Key, dan tema tetap sama persis)
+// --- DOM Elements (ditambah elemen modal edit) ---
+const taskForm = document.getElementById('taskForm');
+const taskInput = document.getElementById('taskInput');
+const taskList = document.getElementById('taskList');
+// ... (elemen lain yang sudah ada)
+const editTaskModal = document.getElementById('editTaskModal');
+const closeEditBtn = document.getElementById('closeEditBtn');
+const editTaskTitle = document.getElementById('editTaskTitle');
+const editDescription = document.getElementById('editDescription');
+const editSubtasksList = document.getElementById('editSubtasksList');
+const generateSubtasksBtn = document.getElementById('generateSubtasksBtn');
+const saveChangesBtn = document.getElementById('saveChangesBtn');
+
+// --- Inisialisasi & Logika Kunci API (Tidak berubah) ---
+// ...
 
 document.addEventListener('DOMContentLoaded', () => {
     checkAndAskForKey();
     let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 
-    // --- FUNGSI AI UTAMA (DI-UPGRADE) ---
-    async function getStructuredTaskFromAI(text) {
-        if (!model) {
-            alert("Model AI belum siap. Pastikan API Key sudah benar.");
-            return null;
-        }
-        
-        const offsetMinutes = new Date().getTimezoneOffset();
-        const offsetHours = -offsetMinutes / 60;
-        const timezoneString = `GMT${offsetHours >= 0 ? '+' : ''}${offsetHours}`;
-        
-        // [UPGRADE] Prompt di-upgrade untuk meminta prioritas dan tag
+    // --- Fungsi Pembantu (Helpers - tidak banyak berubah) ---
+    // ... (applyTheme, updateTabTitle, saveTasks, getSubjectInfo, generateGoogleCalendarLink) ...
+
+    // --- Fungsi-Fungsi AI (generateSubtasks sekarang dipanggil di tempat berbeda) ---
+    async function getStructuredTaskFromAI(text) { /* ... (Prompt Utama tidak berubah) ... */ }
+    async function generateSubtasks(taskName, description) {
+        if (!model) return [];
+        let context = ``;
+        if (description) { context = `\nDengan deskripsi tambahan: "${description}"`; }
         const prompt = `
-            Anda adalah asisten akademik cerdas. Tugas Anda adalah mengubah kalimat tugas kuliah menjadi data JSON terstruktur.
-            Daftar mata kuliah yang valid adalah: Analisis Perancangan Sistem, Interaksi Manusia dan Komputer, Kecerdasan Artifisial, Algoritma Struktur Data, Bahasa Indonesia, Metode Numerik, Jaringan Komputer.
-            
-            PENTING: Pengguna saat ini berada di zona waktu ${timezoneString}. Semua input waktu harus diinterpretasikan dalam zona waktu ini.
-            Tanggal referensi saat ini adalah: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}.
-
-            Tugas Anda:
-            1. Baca input pengguna.
-            2. Ekstrak nama tugasnya (taskName).
-            3. Identifikasi mata kuliahnya (subject). Jika tidak ada, gunakan "Lainnya".
-            4. Tentukan deadline berdasarkan input dan zona waktu pengguna, lalu konversi ke format ISO 8601 UTC ('Z').
-            5. [BARU] Tentukan tingkat prioritasnya ('Kritis', 'Penting', 'Biasa') berdasarkan kata kunci (e.g., ujian, kuis, dadakan = Kritis; tugas, laporan = Penting; cicil, baca = Biasa) dan kedekatan deadline.
-            6. [BARU] Ekstrak 1-2 kata kunci sebagai tag (dalam bentuk array of strings).
-            7. Kembalikan HANYA sebuah objek JSON valid dengan struktur: {"taskName": string, "subject": string, "deadlineISO": string|null, "priority": string, "tags": string[]}. Jawabanmu harus selalu diawali dengan { dan diakhiri dengan }.
-
-            Contoh (pengguna di ${timezoneString}):
-            Input: "kuis dadakan jarkom besok pagi jam 8"
-            Output: {"taskName": "Kuis dadakan", "subject": "Jaringan Komputer", "deadlineISO": "...", "priority": "Kritis", "tags": ["kuis", "dadakan"]}
-            
-            Proses input berikut:
-            Input: "${text}"
-            Output:
-        `;
-
+            Berdasarkan tugas utama ini: "${taskName}"${context}, pecahlah menjadi 3 sampai 5 sub-tugas yang logis dan bisa dikerjakan.
+            Kembalikan hasilnya dalam format JSON array of strings.
+            Contoh Input: "Buat presentasi IMK"
+            Contoh Output: ["Riset topik", "Buat outline", "Desain slide", "Latihan"]
+            Input: "${taskName}"
+            Output:`;
         try {
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const responseText = response.text();
-            
-            const match = responseText.match(/\{[\s\S]*\}/);
-            if (match) {
-                return JSON.parse(match[0]);
-            } else {
-                throw new Error("Tidak ada JSON valid yang ditemukan di jawaban AI.");
-            }
-        } catch (error) {
-            console.error("Error dari AI API (Main Task):", error);
-            alert("Gagal memproses tugas utama. Cek console (F12).");
-            return null;
+            // ... (sisa logika sama)
+        } catch (error) { /* ... */ }
+    }
+    async function getDeepDiveInfo(task) { /* ... (Prompt Deep Dive tidak berubah) ... */ }
+
+    // --- Render Function (Tidak banyak berubah) ---
+    function renderTasks() { /* ... (Logika render sama seperti versi stabil terakhir) ... */ }
+
+    // --- [BARU] Logika untuk Modal Edit ---
+    function openEditModal(task) {
+        editTaskModal.setAttribute('data-editing-task-id', task.id);
+        editTaskTitle.textContent = `Edit Tugas: ${task.text}`;
+        editDescription.value = task.description || '';
+        renderSubtasksInModal(task.subtasks || []);
+        editTaskModal.classList.add('show');
+    }
+    
+    function renderSubtasksInModal(subtasks) {
+        editSubtasksList.innerHTML = '';
+        if (subtasks.length > 0) {
+            subtasks.forEach(subtask => {
+                const li = document.createElement('li');
+                li.className = 'subtask-item'; // Pakai style yang sudah ada
+                li.innerHTML = `
+                    <input type="checkbox" ${subtask.completed ? 'checked' : ''} disabled>
+                    <label class="${subtask.completed ? 'completed' : ''}">${subtask.text}</label>
+                `;
+                editSubtasksList.appendChild(li);
+            });
+        } else {
+            editSubtasksList.innerHTML = `<li>Belum ada sub-tugas.</li>`;
         }
     }
 
-    // (Fungsi generateSubtasks dan getDeepDiveInfo tidak perlu diubah sama sekali)
-    // ...
+    generateSubtasksBtn.addEventListener('click', async () => {
+        const taskId = parseInt(editTaskModal.getAttribute('data-editing-task-id'));
+        const task = tasks.find(t => t.id === taskId);
+        const description = editDescription.value;
+        if (!task) return;
+        
+        generateSubtasksBtn.textContent = 'Membuat...';
+        generateSubtasksBtn.disabled = true;
 
-    // --- Event Listener Form (DI-UPGRADE UNTUK MENYIMPAN DATA BARU) ---
+        const subtaskStrings = await generateSubtasks(task.text, description);
+        task.subtasks = subtaskStrings.map(st => ({ text: st, completed: false }));
+        renderSubtasksInModal(task.subtasks);
+
+        generateSubtasksBtn.textContent = 'Buat Sub-tugas dengan AI 🤖';
+        generateSubtasksBtn.disabled = false;
+    });
+
+    saveChangesBtn.addEventListener('click', () => {
+        const taskId = parseInt(editTaskModal.getAttribute('data-editing-task-id'));
+        const taskToUpdate = tasks.find(t => t.id === taskId);
+        if (taskToUpdate) {
+            taskToUpdate.description = editDescription.value.trim();
+            // Sub-tugas sudah di-update saat di-generate, jadi tinggal simpan
+        }
+        saveTasks();
+        renderTasks();
+        editTaskModal.classList.remove('show');
+    });
+
+    closeEditBtn.addEventListener('click', () => editTaskModal.classList.remove('show'));
+
+
+    // --- Event Listener Form (Disederhanakan) ---
     taskForm.addEventListener('submit', async (e) => {
-        // ... (bagian awal sampai structuredTask didapatkan tetap sama) ...
+        e.preventDefault();
+        const rawText = taskInput.value.trim();
+        if (rawText === '') return;
+
+        submitButton.disabled = true;
+        submitButton.textContent = 'Memproses...';
         
         const structuredTask = await getStructuredTaskFromAI(rawText);
+        if (!structuredTask) { /* ... (handle error) ... */ return; }
         
-        if (!structuredTask) { /* ... (handle error tetap sama) ... */ return; }
-
-        submitButton.textContent = 'Membuat sub-tugas...';
-        const subtaskStrings = await generateSubtasks(structuredTask.taskName);
-        const subtasks = subtaskStrings.map(st => ({ text: st, completed: false }));
-
         let deadlineFormatted = null;
-        // ... (logika format deadline tetap sama) ...
+        if (structuredTask.deadlineISO) { /* ... */ }
+        const subjectInfo = getSubjectInfo(structuredTask.subject);
         
-        const subjectInfo = getSubjectInfo(structuredTask.subject); // Menggunakan helper function
-        
-        // [UPGRADE] Objek newTask sekarang menyimpan data prioritas dan tag
         const newTask = {
             id: Date.now(),
             text: structuredTask.taskName,
-            subject: { key: subjectInfo.key, name: subjectInfo.name },
+            description: '', // [BARU] Defaultnya kosong
+            subject: subjectInfo.name,
             deadline: deadlineFormatted,
+            deadlineISO: structuredTask.deadlineISO,
             completed: false,
-            subtasks: subtasks,
-            priority: structuredTask.priority || 'Biasa', // Fallback jika AI tidak memberi prioritas
-            tags: structuredTask.tags || [] // Fallback jika AI tidak memberi tag
+            subtasks: [], // [BARU] Defaultnya kosong
+            priority: structuredTask.priority || 'Biasa',
+            tags: structuredTask.tags || []
         };
 
         tasks.unshift(newTask);
-        // ... (sisa fungsi sama, save, render, reset button) ...
+        saveTasks();
+        renderTasks();
+
+        taskInput.value = '';
+        submitButton.disabled = false;
+        submitButton.textContent = 'Tambah';
     });
 
-    // --- Render Function (DI-UPGRADE UNTUK MENAMPILKAN INFO BARU) ---
-    function renderTasks() {
-        taskList.innerHTML = '';
-        if (tasks.length === 0) { /* ... (empty state tetap sama) ... */ return; }
+    // --- Event Listener List (Di-upgrade untuk membuka modal edit) ---
+    taskList.addEventListener('click', (e) => {
+        const target = e.target;
+        const taskLi = target.closest('.task-item');
+        if (!taskLi) return;
+        const taskId = parseInt(taskLi.getAttribute('data-id'));
+        const taskToUpdate = tasks.find(t => t.id === taskId);
+        if (!taskToUpdate) return;
 
-        tasks.forEach(task => {
-            const li = document.createElement('li');
-            
-            // [UPGRADE] Menambahkan kelas CSS berdasarkan prioritas
-            const priorityClass = `priority-${task.priority.toLowerCase()}`;
-            li.className = `task-item ${priorityClass}`;
-            
-            if (task.completed) li.classList.add('completed');
-            li.setAttribute('data-id', task.id);
-            
-            // ... (logika subtasksHTML tetap sama) ...
+        // Cek aksi spesifik (tombol) dulu
+        if (target.matches('.delete-btn') || target.closest('.delete-btn')) {
+            tasks = tasks.filter(t => t.id !== taskId);
+            saveTasks();
+            renderTasks();
+        } else if (target.matches('.deep-dive-btn') || target.closest('.deep-dive-btn')) {
+            getDeepDiveInfo(taskToUpdate);
+        } else if (target.matches('.subtask-checkbox')) {
+            const subtaskIndex = parseInt(target.getAttribute('data-subtask-index'));
+            taskToUpdate.subtasks[subtaskIndex].completed = !taskToUpdate.subtasks[subtaskIndex].completed;
+            saveTasks();
+            renderTasks();
+        } else if (!target.closest('a')) { // Jika bukan klik link kalender
+            // Jika tidak ada aksi spesifik, buka modal edit
+            openEditModal(taskToUpdate);
+        }
+    });
 
-            // [BARU] Membuat HTML untuk tags
-            let tagsHTML = '';
-            if (task.tags && task.tags.length > 0) {
-                tagsHTML = '<div class="task-tags">';
-                task.tags.forEach(tag => {
-                    tagsHTML += `<span class="task-tag">#${tag}</span>`;
-                });
-                tagsHTML += '</div>';
-            }
-
-            li.innerHTML = `
-                <div class="task-content">
-                    <div class="task-text-content">${task.text}</div>
-                    <div class="task-info">
-                        <span class="task-subject subject-${task.subject.key}">${task.subject.name}</span>
-                        ${task.deadline ? `<span> | Deadline: ${task.deadline}</span>` : ''}
-                    </div>
-                    ${tagsHTML} ${subtasksHTML} </div>
-                <div class="task-actions">
-                    <button class="deep-dive-btn" data-task-text="${task.text}">🪄</button>
-                    <button class="delete-btn">🗑️</button>
-                </div>
-            `;
-            taskList.appendChild(li);
-        });
-    }
-
-    // (Sisa kode seperti saveTasks, event listener list, helper function, dll. tetap sama)
+    // ... (kode renderTasks awal & tema) ...
 });

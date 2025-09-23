@@ -26,6 +26,14 @@ const deepDiveTitle = document.getElementById('deepDiveTitle');
 const deepDiveResult = document.getElementById('deepDiveResult');
 const closeDeepDiveBtn = document.getElementById('closeDeepDiveBtn');
 
+const editTaskModal = document.getElementById('editTaskModal');
+const closeEditBtn = document.getElementById('closeEditBtn');
+const editTaskTitle = document.getElementById('editTaskTitle');
+const editDescription = document.getElementById('editDescription');
+const editSubtasksList = document.getElementById('editSubtasksList');
+const generateSubtasksBtn = document.getElementById('generateSubtasksBtn');
+const saveChangesBtn = document.getElementById('saveChangesBtn');
+
 // --- Fungsi Inisialisasi AI ---
 function initializeAI(apiKey) {
     ai = new GoogleGenerativeAI(apiKey);
@@ -184,17 +192,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     async function generateSubtasks(taskName) {
-        if (!model) return []; // Jangan lakukan apa-apa jika model belum siap
+        if (!model) return [];
+        let context = ``;
+        if (description) { context = `\nDengan deskripsi tambahan: "${description}"`; }
         const prompt = `
-            Kamu adalah seorang manajer proyek yang ahli. Berdasarkan tugas utama ini: "${taskName}", pecahlah menjadi 3 sampai 5 sub-tugas yang logis, singkat, dan bisa dikerjakan.
+            Berdasarkan tugas utama ini: "${taskName}"${context}, pecahlah menjadi 3 sampai 5 sub-tugas yang logis dan bisa dikerjakan.
             Kembalikan hasilnya dalam format JSON array of strings.
-            Contoh:
-            Input: "Buat presentasi IMK tentang 10 Usability Heuristics"
-            Output: ["Riset 10 Usability Heuristics", "Cari studi kasus untuk tiap heuristic", "Buat outline presentasi", "Desain slide", "Latihan presentasi"]
-
+            Contoh Input: "Buat presentasi IMK"
+            Contoh Output: ["Riset topik", "Buat outline", "Desain slide", "Latihan"]
             Input: "${taskName}"
-            Output:
-        `;
+            Output:`;
         try {
             const result = await model.generateContent(prompt);
             const response = await result.response;
@@ -275,18 +282,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const newTask = {
             id: Date.now(),
             text: structuredTask.taskName,
-            subject: { key: subjectInfo.key, name: subjectInfo.name },
+            description: '', // [BARU] Defaultnya kosong
+            subject: subjectInfo.name,
             deadline: deadlineFormatted,
-            deadlineISO: structuredTask.deadlineISO, // [PENTING] Simpan ISO string
+            deadlineISO: structuredTask.deadlineISO,
             completed: false,
-            subtasks: subtasks,
+            subtasks: [], // [BARU] Defaultnya kosong
             priority: structuredTask.priority || 'Biasa',
             tags: structuredTask.tags || []
         };
         tasks.unshift(newTask);
-        taskInput.value = '';
         saveTasks();
         renderTasks();
+
+        taskInput.value = '';
+        submitButton.disabled = false;
+        submitButton.textContent = 'Tambah';
     });
 
     function renderTasks() {
@@ -351,6 +362,64 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         updateTabTitle(); // Panggil update judul tab setiap kali render
     }
+     // --- [BARU] Logika untuk Modal Edit ---
+    function openEditModal(task) {
+        editTaskModal.setAttribute('data-editing-task-id', task.id);
+        editTaskTitle.textContent = `Edit Tugas: ${task.text}`;
+        editDescription.value = task.description || '';
+        renderSubtasksInModal(task.subtasks || []);
+        editTaskModal.classList.add('show');
+    }
+    
+    function renderSubtasksInModal(subtasks) {
+        editSubtasksList.innerHTML = '';
+        if (subtasks.length > 0) {
+            subtasks.forEach(subtask => {
+                const li = document.createElement('li');
+                li.className = 'subtask-item'; // Pakai style yang sudah ada
+                li.innerHTML = `
+                    <input type="checkbox" ${subtask.completed ? 'checked' : ''} disabled>
+                    <label class="${subtask.completed ? 'completed' : ''}">${subtask.text}</label>
+                `;
+                editSubtasksList.appendChild(li);
+            });
+        } else {
+            editSubtasksList.innerHTML = `<li>Belum ada sub-tugas.</li>`;
+        }
+    }
+
+    generateSubtasksBtn.addEventListener('click', async () => {
+        const taskId = parseInt(editTaskModal.getAttribute('data-editing-task-id'));
+        const task = tasks.find(t => t.id === taskId);
+        const description = editDescription.value;
+        if (!task) return;
+        
+        generateSubtasksBtn.textContent = 'Membuat...';
+        generateSubtasksBtn.disabled = true;
+
+        const subtaskStrings = await generateSubtasks(task.text, description);
+        task.subtasks = subtaskStrings.map(st => ({ text: st, completed: false }));
+        renderSubtasksInModal(task.subtasks);
+
+        generateSubtasksBtn.textContent = 'Buat Sub-tugas dengan AI 🤖';
+        generateSubtasksBtn.disabled = false;
+    });
+
+    saveChangesBtn.addEventListener('click', () => {
+        const taskId = parseInt(editTaskModal.getAttribute('data-editing-task-id'));
+        const taskToUpdate = tasks.find(t => t.id === taskId);
+        if (taskToUpdate) {
+            taskToUpdate.description = editDescription.value.trim();
+            // Sub-tugas sudah di-update saat di-generate, jadi tinggal simpan
+        }
+        saveTasks();
+        renderTasks();
+        editTaskModal.classList.remove('show');
+    });
+
+    closeEditBtn.addEventListener('click', () => editTaskModal.classList.remove('show'));
+
+
 
 
     function saveTasks() { localStorage.setItem('tasks', JSON.stringify(tasks)); 
@@ -361,30 +430,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const taskLi = target.closest('.task-item');
         if (!taskLi) return;
         const taskId = parseInt(taskLi.getAttribute('data-id'));
+        const taskToUpdate = tasks.find(t => t.id === taskId);
+        if (!taskToUpdate) return;
 
-        if (target.matches('.delete-btn')) {
-            tasks = tasks.filter(task => task.id !== taskId);
+        // Cek aksi spesifik (tombol) dulu
+        if (target.matches('.delete-btn') || target.closest('.delete-btn')) {
+            tasks = tasks.filter(t => t.id !== taskId);
             saveTasks();
             renderTasks();
-        } else if (target.matches('.deep-dive-btn')) {
-            const taskText = target.getAttribute('data-task-text');
-            getDeepDiveInfo(taskText);
+        } else if (target.matches('.deep-dive-btn') || target.closest('.deep-dive-btn')) {
+            getDeepDiveInfo(taskToUpdate);
         } else if (target.matches('.subtask-checkbox')) {
             const subtaskIndex = parseInt(target.getAttribute('data-subtask-index'));
-            const taskToUpdate = tasks.find(t => t.id === taskId);
-            if (taskToUpdate) {
-                taskToUpdate.subtasks[subtaskIndex].completed = !taskToUpdate.subtasks[subtaskIndex].completed;
-                saveTasks();
-                renderTasks();
-            }
-        } else {
-            // ... (logika tandai selesai tugas utama sama seperti sebelumnya) ...
-            tasks = tasks.map(task => task.id === taskId ? { ...task, completed: !task.completed } : task);
+            taskToUpdate.subtasks[subtaskIndex].completed = !taskToUpdate.subtasks[subtaskIndex].completed;
             saveTasks();
             renderTasks();
+        } else if (!target.closest('a')) { // Jika bukan klik link kalender
+            // Jika tidak ada aksi spesifik, buka modal edit
+            openEditModal(taskToUpdate);
         }
-
-
     });
     function getSubjectInfo(subjectName) {
         const subjects = { 'aps': 'Analisis Perancangan Sistem', 'imk': 'Interaksi Manusia Komputer', 'ai': 'Kecerdasan Artifisial', 'asd': 'Algoritma Struktur Data', 'metnum': 'Metode Numerik', 'jarkom': 'Jaringan Komputer', 'bindo': 'Bahasa Indonesia' };

@@ -350,3 +350,44 @@ button[type="submit"]:hover {
 .add-to-calendar-btn:hover {
     transform: scale(1.2);
 }
+
+.edit-section {
+    text-align: left;
+    margin-bottom: 20px;
+}
+.edit-section label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: var(--subtle-text-color);
+}
+#editDescription {
+    width: 100%;
+    min-height: 100px;
+    box-sizing: border-box; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background-color: var(--bg-color); color: var(--text-color);
+}
+#editSubtasksList {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 15px;
+}
+#generateSubtasksBtn {
+    width: 100%;
+    background-color: var(--accent-hover);
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+#saveChangesBtn {
+    width: 100%;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+}
