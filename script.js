@@ -1,58 +1,67 @@
-// script.js (Versi Final Gabungan Semua Fitur - Perbaikan Bug)
+// script.js (Versi Final dengan LocalStorage Key)
 
 import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
-// --- Variabel Global & DOM Elements ---
-let ai, model, userApiKey;
+// --- Variabel Global ---
+let ai;
+let model;
+let userApiKey;
+
+// --- DOM Elements ---
 const taskForm = document.getElementById('taskForm');
 const taskInput = document.getElementById('taskInput');
 const taskList = document.getElementById('taskList');
 const themeToggle = document.getElementById('themeToggle');
 const body = document.body;
 const submitButton = taskForm.querySelector('button[type="submit"]');
+
+// Modal API Key
 const apiKeyModal = document.getElementById('apiKeyModal');
 const apiKeyInput = document.getElementById('apiKeyInput');
 const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
+
+// [BARU] Modal Deep Dive
 const deepDiveModal = document.getElementById('deepDiveModal');
 const deepDiveTitle = document.getElementById('deepDiveTitle');
 const deepDiveResult = document.getElementById('deepDiveResult');
 const closeDeepDiveBtn = document.getElementById('closeDeepDiveBtn');
-const toggleDetailsBtn = document.getElementById('toggleDetailsBtn');
-const taskDetails = document.getElementById('taskDetails');
-const taskDescription = document.getElementById('taskDescription');
-const subtaskInput = document.getElementById('subtaskInput');
-const addSubtaskBtn = document.getElementById('addSubtaskBtn');
-const pendingSubtasksList = document.getElementById('pendingSubtasksList');
-let tempSubtasks = [];
 
-// --- Fungsi Inisialisasi & Logika Kunci API ---
+// --- Fungsi Inisialisasi AI ---
 function initializeAI(apiKey) {
     ai = new GoogleGenerativeAI(apiKey);
+    // KODE BARU (ganti menjadi ini)
     model = ai.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 }
+
+// --- Fungsi Pengecekan Kunci API ---
 function checkAndAskForKey() {
     userApiKey = localStorage.getItem('gemini_api_key');
-    if (!userApiKey) { apiKeyModal.classList.add('show'); } 
-    else { initializeAI(userApiKey); }
+    if (!userApiKey) {
+        apiKeyModal.classList.add('show');
+    } else {
+        initializeAI(userApiKey);
+    }
 }
+
+// Event listener untuk tombol simpan kunci
 saveApiKeyBtn.addEventListener('click', () => {
     const key = apiKeyInput.value.trim();
     if (key) {
         localStorage.setItem('gemini_api_key', key);
         apiKeyModal.classList.remove('show');
-        checkAndAskForKey();
-    } else { alert('Kunci API tidak boleh kosong!'); }
-});
-closeDeepDiveBtn.addEventListener('click', () => {
-    deepDiveModal.classList.remove('show');
+        checkAndAskForKey(); // Cek ulang dan inisialisasi AI
+    } else {
+        alert('Kunci API tidak boleh kosong!');
+    }
 });
 
-// --- MAIN LOGIC ---
+// --- MAIN LOGIC (yang dijalankan saat halaman dimuat) ---
 document.addEventListener('DOMContentLoaded', () => {
-    checkAndAskForKey();
-   
+    checkAndAskForKey(); // Cek kunci saat pertama kali halaman dibuka
 
-    // --- Fungsi Pembantu (Helpers) ---
+    // --- Sisa kode lainnya (tema, event listener form, render, dll) ---
+    // (Kode di bawah ini sama persis dengan versi sebelumnya, tidak perlu diubah)
+
     function applyTheme(theme) {
         if (theme === 'dark') {
             body.classList.add('dark-mode');
@@ -72,28 +81,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 
-    // --- [BARU] Logika untuk Form Input Detail ---
-    toggleDetailsBtn.addEventListener('click', () => {
-        taskDetails.classList.toggle('show');
-    });
-
-    function renderPendingSubtasks() {
-        pendingSubtasksList.innerHTML = '';
-        tempSubtasks.forEach(subtaskText => {
-            const li = document.createElement('li');
-            li.textContent = `- ${subtaskText}`;
-            pendingSubtasksList.appendChild(li);
-        });
-    }
-
-    addSubtaskBtn.addEventListener('click', () => {
-        const subtaskText = subtaskInput.value.trim();
-        if (subtaskText) {
-            tempSubtasks.push(subtaskText);
-            subtaskInput.value = '';
-            renderPendingSubtasks();
-        }
-    });
     function updateTabTitle() {
         const now = new Date();
         // Set jam ke awal hari untuk perbandingan tanggal yang adil
@@ -242,19 +229,9 @@ document.addEventListener('DOMContentLoaded', () => {
         deepDiveResult.innerHTML = `<p>Sedang bertanya pada AI...</p>`;
         deepDiveModal.classList.add('show');
 
-        let context = ``;
-        if (task.description) {
-            context += `\nDeskripsi Tambahan: "${task.description}"`;
-        }
-        if (task.subtasks && task.subtasks.length > 0) {
-            const subtaskList = task.subtasks.map(st => `- ${st.text}`).join('\n');
-            context += `\nSub-tugas yang direncanakan:\n${subtaskList}`;
-        }
-
         const prompt = `
-            Jelaskan secara singkat topik akademis dari tugas utama berikut: "${task.text}".
-            Gunakan konteks tambahan ini untuk membuat penjelasan lebih relevan: ${context}
-            Kemudian, berikan 3-5 kata kunci (keywords) yang relevan untuk riset online.
+            Jelaskan secara singkat dalam satu atau dua kalimat, seolah untuk mahasiswa, topik akademis berikut: "${taskName}".
+            Kemudian, berikan 3-5 kata kunci (keywords) yang relevan untuk melakukan riset online tentang topik ini.
             Kembalikan hasilnya dalam format JSON: {"summary": "...", "keywords": ["...", "..."]}.
             Jangan tulis penjelasan apapun, hanya JSON.
         `;
@@ -292,12 +269,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const structuredTask = await getStructuredTaskFromAI(rawText);
         if (!structuredTask) { // Jika tugas utama gagal, hentikan
             submitButton.disabled = false;
-            submitButton.textContent = 'Simpan Tugas';
+            submitButton.textContent = 'Tambah';
             return;
         }
-
-        const description = taskDescription.value.trim();
-        const subtasks = tempSubtasks.map(st => ({ text: st, completed: false }));
+        submitButton.textContent = 'Membuat sub-tugas...';
+        const subtaskStrings = await generateSubtasks(structuredTask.taskName);
+        const subtasks = subtaskStrings.map(st => ({ text: st, completed: false }));
         submitButton.disabled = false;
         submitButton.textContent = 'Tambah';
 
@@ -310,26 +287,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const newTask = {
             id: Date.now(),
             text: structuredTask.taskName,
-            description: description, // [BARU] Simpan deskripsi
-            subject: { /* ... */ },
+            subject: { key: subjectInfo.key, name: subjectInfo.name },
             deadline: deadlineFormatted,
-            deadlineISO: structuredTask.deadlineISO,
+            deadlineISO: structuredTask.deadlineISO, // [PENTING] Simpan ISO string
             completed: false,
-            subtasks: subtasks, // [BARU] Simpan sub-tugas manual
+            subtasks: subtasks,
             priority: structuredTask.priority || 'Biasa',
             tags: structuredTask.tags || []
         };
         tasks.unshift(newTask);
+        taskInput.value = '';
         saveTasks();
         renderTasks();
-         // Reset form
-        taskInput.value = '';
-        taskDescription.value = '';
-        tempSubtasks = [];
-        renderPendingSubtasks();
-        taskDetails.classList.remove('show');
-        submitButton.disabled = false;
-        submitButton.textContent = 'Simpan Tugas';
     });
 
     function renderTasks() {
@@ -368,13 +337,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 tagsHTML += '</div>';
             }
-            // [BARU] Membuat HTML untuk deskripsi jika ada
-            let descriptionHTML = '';
-            if (task.description) {
-                descriptionHTML = `<p class="task-description">${task.description}</p>`;
-            }
             let calendarButtonHTML = '';
-            if (task.deadlineISO) {
+            if (task.deadline) {
                 const calendarLink = generateGoogleCalendarLink(task);
                 calendarButtonHTML = `<a href="${calendarLink}" target="_blank" class="add-to-calendar-btn" title="Tambah ke Kalender">🗓️</a>`;
             }
@@ -384,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
             li.innerHTML = `
                 <div class="task-content">
                     <div class="task-text-content">${task.text}</div>
-                    ${descriptionHTML}<div class="task-info">
+                    <div class="task-info">
                         <span class="task-subject subject-${task.subject.key}">${task.subject.name}</span>
                         ${task.deadline ? `<span> | Deadline: ${task.deadline}</span>` : ''}
                     </div>
@@ -401,8 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    function saveTasks() {
-        localStorage.setItem('tasks', JSON.stringify(tasks));
+    function saveTasks() { localStorage.setItem('tasks', JSON.stringify(tasks)); 
         updateTabTitle(); // Panggil juga di sini untuk perubahan status
     }
     taskList.addEventListener('click', (e) => {
@@ -410,15 +373,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const taskLi = target.closest('.task-item');
         if (!taskLi) return;
         const taskId = parseInt(taskLi.getAttribute('data-id'));
-        const taskToUpdate = tasks.find(t => t.id === taskId);
-        if (!taskToUpdate) return;
 
         if (target.matches('.delete-btn')) {
             tasks = tasks.filter(task => task.id !== taskId);
             saveTasks();
             renderTasks();
         } else if (target.matches('.deep-dive-btn')) {
-            getDeepDiveInfo(taskToUpdate); // Kirim seluruh objek task
+            const taskText = target.getAttribute('data-task-text');
+            getDeepDiveInfo(taskText);
         } else if (target.matches('.subtask-checkbox')) {
             const subtaskIndex = parseInt(target.getAttribute('data-subtask-index'));
             const taskToUpdate = tasks.find(t => t.id === taskId);
