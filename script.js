@@ -1,80 +1,58 @@
-// script.js (Versi Final dengan LocalStorage Key)
+// script.js (Versi Final Gabungan Semua Fitur - Perbaikan Bug)
 
 import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
-// --- Variabel Global ---
-let ai;
-let model;
-let userApiKey;
-
-// --- DOM Elements ---
+// --- Variabel Global & DOM Elements ---
+let ai, model, userApiKey;
 const taskForm = document.getElementById('taskForm');
 const taskInput = document.getElementById('taskInput');
 const taskList = document.getElementById('taskList');
 const themeToggle = document.getElementById('themeToggle');
 const body = document.body;
 const submitButton = taskForm.querySelector('button[type="submit"]');
-
-// Modal API Key
 const apiKeyModal = document.getElementById('apiKeyModal');
 const apiKeyInput = document.getElementById('apiKeyInput');
 const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
-
-// [BARU] Modal Deep Dive
 const deepDiveModal = document.getElementById('deepDiveModal');
 const deepDiveTitle = document.getElementById('deepDiveTitle');
 const deepDiveResult = document.getElementById('deepDiveResult');
 const closeDeepDiveBtn = document.getElementById('closeDeepDiveBtn');
-
-// [BARU] Elemen Form Input Detail
 const toggleDetailsBtn = document.getElementById('toggleDetailsBtn');
 const taskDetails = document.getElementById('taskDetails');
 const taskDescription = document.getElementById('taskDescription');
 const subtaskInput = document.getElementById('subtaskInput');
 const addSubtaskBtn = document.getElementById('addSubtaskBtn');
 const pendingSubtasksList = document.getElementById('pendingSubtasksList');
-
 let tempSubtasks = [];
 
-// --- Fungsi Inisialisasi AI ---
+// --- Fungsi Inisialisasi & Logika Kunci API ---
 function initializeAI(apiKey) {
     ai = new GoogleGenerativeAI(apiKey);
-    // KODE BARU (ganti menjadi ini)
     model = ai.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 }
-
-// --- Fungsi Pengecekan Kunci API ---
 function checkAndAskForKey() {
     userApiKey = localStorage.getItem('gemini_api_key');
-    if (!userApiKey) {
-        apiKeyModal.classList.add('show');
-    } else {
-        initializeAI(userApiKey);
-    }
+    if (!userApiKey) { apiKeyModal.classList.add('show'); } 
+    else { initializeAI(userApiKey); }
 }
-
-// Event listener untuk tombol simpan kunci
 saveApiKeyBtn.addEventListener('click', () => {
     const key = apiKeyInput.value.trim();
     if (key) {
         localStorage.setItem('gemini_api_key', key);
         apiKeyModal.classList.remove('show');
-        checkAndAskForKey(); // Cek ulang dan inisialisasi AI
-    } else {
-        alert('Kunci API tidak boleh kosong!');
-    }
+        checkAndAskForKey();
+    } else { alert('Kunci API tidak boleh kosong!'); }
+});
+closeDeepDiveBtn.addEventListener('click', () => {
+    deepDiveModal.classList.remove('show');
 });
 
-// --- MAIN LOGIC (yang dijalankan saat halaman dimuat) ---
+// --- MAIN LOGIC ---
 document.addEventListener('DOMContentLoaded', () => {
-    checkAndAskForKey(); // Cek kunci saat pertama kali halaman dibuka
+    checkAndAskForKey();
+   
 
-    // --- Sisa kode lainnya (tema, event listener form, render, dll) ---
-    // (Kode di bawah ini sama persis dengan versi sebelumnya, tidak perlu diubah)
-
-
-
-
+    // --- Fungsi Pembantu (Helpers) ---
     function applyTheme(theme) {
         if (theme === 'dark') {
             body.classList.add('dark-mode');
