@@ -109,24 +109,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // [BARU] Fungsi untuk membuat link Google Calendar
     function generateGoogleCalendarLink(task) {
         if (!task.deadlineISO) return '#';
-
-        const startDate = new Date(task.deadlineISO);
-        // Buat acara berlangsung selama 1 jam sebelum deadline
-        const endDate = new Date(startDate.getTime() - 60 * 60 * 1000);
-
-        // Format tanggal ke YYYYMMDDTHHMMSSZ yang dibutuhkan Google
-        const formatDateForGoogle = (date) => {
-            return date.toISOString().replace(/-|:|\.\d{3}/g, '');
-        };
-
+        const deadlineDate = new Date(task.deadlineISO);
+        const startDate = new Date(deadlineDate.getTime() - 60 * 60 * 1000);
+        const formatDate = (date) => date.toISOString().replace(/-|:|\.\d{3}/g, '');
         const title = encodeURIComponent(task.text);
-        const details = encodeURIComponent(
-            `Tugas untuk mata kuliah: ${task.subject.name}\n\nSub-tugas:\n${task.subtasks.map(st => `- ${st.text}`).join('\n')}`
-        );
-        const startTime = formatDateForGoogle(endDate);
-        const endTime = formatDateForGoogle(startDate);
-
-        return `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startTime}/${endTime}&details=${details}`;
+        const details = encodeURIComponent(`Tugas untuk: ${task.subject.name}\n\nSub-tugas:\n${(task.subtasks || []).map(st => `- ${st.text}`).join('\n')}`);
+        return `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${formatDate(startDate)}/${formatDate(deadlineDate)}&details=${details}`;
     }
 
 
