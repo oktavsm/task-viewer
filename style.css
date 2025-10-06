@@ -17,13 +17,25 @@ h1 { margin: 0; font-size: 24px; }
 button[type="submit"] { padding: 12px 20px; border: none; background-color: var(--accent-color); color: white; font-size: 16px; border-radius: 8px; cursor: pointer; transition: background-color 0.2s; }
 button[type="submit"]:hover { background-color: var(--accent-hover); }
 #taskList { list-style: none; padding: 0; margin: 0; }
-.task-item { padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; transition: all 0.3s ease; }
+.task-item { border-left: 5px solid transparent; padding: 15px; padding-left: 10px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; transition: all 0.3s ease; }
 .task-item:last-child { border-bottom: none; }
 .task-item.completed .task-text-content, .task-item.completed .task-info { text-decoration: line-through; color: var(--completed-text); }
+.task-item.priority-kritis { border-left-color: #e74c3c; }
+.task-item.priority-penting { border-left-color: #f39c12; }
+.task-item.priority-biasa { border-left-color: #3498db; }
 .task-content { flex-grow: 1; cursor: pointer; }
 .task-info { font-size: 12px; color: var(--subtle-text-color); margin-top: 4px; }
-.task-subject { font-weight: bold; padding: 3px 8px; border-radius: 4px; background-color: #ecf0f1; color: #7f8c8d; font-size: 11px; }
-body.dark-mode .task-subject { background-color: #2c3e50; color: #bdc3c7; }
+.task-tags { margin-top: 8px; }
+.task-tag { display: inline-block; background-color: var(--bg-color); color: var(--subtle-text-color); padding: 3px 8px; border-radius: 12px; font-size: 11px; margin-right: 5px; border: 1px solid var(--border-color); }
+.task-subject { font-weight: bold; padding: 3px 8px; border-radius: 4px; font-size: 11px; color: white !important; }
+.subject-aps { background-color: #3498db; }
+.subject-imk { background-color: #9b59b6; }
+.subject-ai { background-color: #e67e22; }
+.subject-asd { background-color: #2ecc71; }
+.subject-metnum { background-color: #f1c40f; }
+.subject-jarkom { background-color: #e74c3c; }
+.subject-bindo { background-color: #7f8c8d; }
+.subject-lainnya { background-color: #bdc3c7; color: #2c3e50 !important; }
 .delete-btn { border: none; background: none; color: var(--danger-color); font-size: 20px; cursor: pointer; opacity: 0; transition: all 0.2s; margin-left: 10px; }
 .task-item:hover .delete-btn { opacity: 1; }
 .delete-btn:hover { transform: scale(1.2); }
