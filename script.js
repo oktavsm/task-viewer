@@ -18,7 +18,7 @@ const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
 // --- Inisialisasi & Logika Kunci API ---
 function initializeAI(apiKey) {
     ai = new GoogleGenerativeAI(apiKey);
-    model = ai.getGenerativeModel({ model: "gemini-pro" });
+    model = ai.getGenerativeModel({ model: "gemini-2.5-flash" });
 }
 function checkAndAskForKey() {
     userApiKey = localStorage.getItem('gemini_api_key');
