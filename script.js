@@ -38,7 +38,8 @@ const saveChangesBtn = document.getElementById('saveChangesBtn');
 function initializeAI(apiKey) {
     ai = new GoogleGenerativeAI(apiKey);
     // KODE BARU (ganti menjadi ini)
-    model = ai.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    // GANTI MENJADI
+    model = ai.getGenerativeModel({ model: "gemini-pro" });
 }
 
 // --- Fungsi Pengecekan Kunci API ---
@@ -362,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         updateTabTitle(); // Panggil update judul tab setiap kali render
     }
-     // --- [BARU] Logika untuk Modal Edit ---
+    // --- [BARU] Logika untuk Modal Edit ---
     function openEditModal(task) {
         editTaskModal.setAttribute('data-editing-task-id', task.id);
         editTaskTitle.textContent = `Edit Tugas: ${task.text}`;
@@ -370,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSubtasksInModal(task.subtasks || []);
         editTaskModal.classList.add('show');
     }
-    
+
     function renderSubtasksInModal(subtasks) {
         editSubtasksList.innerHTML = '';
         if (subtasks.length > 0) {
@@ -393,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const task = tasks.find(t => t.id === taskId);
         const description = editDescription.value;
         if (!task) return;
-        
+
         generateSubtasksBtn.textContent = 'Membuat...';
         generateSubtasksBtn.disabled = true;
 
@@ -422,7 +423,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-    function saveTasks() { localStorage.setItem('tasks', JSON.stringify(tasks)); 
+    function saveTasks() {
+        localStorage.setItem('tasks', JSON.stringify(tasks));
         updateTabTitle(); // Panggil juga di sini untuk perubahan status
     }
     taskList.addEventListener('click', (e) => {
