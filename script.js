@@ -40,7 +40,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 
     // --- Fungsi Pembantu (Helpers) ---
-    function applyTheme(theme) { /* ... (Tidak berubah) ... */ }
+    function applyTheme(theme) {
+        if (theme === 'dark') {
+            body.classList.add('dark-mode');
+            themeToggle.textContent = '☀️';
+        } else {
+            body.classList.remove('dark-mode');
+            themeToggle.textContent = '🌙';
+        }
+    }
     function saveTasks() {
         localStorage.setItem('tasks', JSON.stringify(tasks));
     }
@@ -96,7 +104,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Render Function (di-upgrade) ---
     function renderTasks() {
         taskList.innerHTML = '';
-        if (tasks.length === 0) { /* ... (empty state) ... */ return; }
+        if (tasks.length === 0) {
+            taskList.innerHTML = `<p style="text-align:center; color:var(--subtle-text-color);">Belum ada tugas, santai dulu~ 🌴</p>`;
+            return;
+        }
         tasks.forEach(task => {
             const li = document.createElement('li');
             const priority = task.priority || 'Biasa';
@@ -128,8 +139,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Event Listeners ---
     const savedTheme = localStorage.getItem('theme') || 'light';
     applyTheme(savedTheme);
-    themeToggle.addEventListener('click', () => { /* ... (tidak berubah) ... */ });
-
+    themeToggle.addEventListener('click', () => {
+        const newTheme = body.classList.contains('dark-mode') ? 'light' : 'dark';
+        localStorage.setItem('theme', newTheme);
+        applyTheme(newTheme);
+    });
     taskForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const rawText = taskInput.value.trim();
@@ -139,8 +153,11 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.textContent = 'Memproses...';
         
         const structuredTask = await getStructuredTaskFromAI(rawText);
-        if (!structuredTask) { /* ... (handle error) ... */ return; }
-        
+        if (!structuredTask) {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Tambah';
+            return;
+        }
         let deadlineFormatted = null;
         if (structuredTask.deadlineISO) {
             const deadlineDate = new Date(structuredTask.deadlineISO);
@@ -166,7 +183,21 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.textContent = 'Tambah';
     });
 
-    taskList.addEventListener('click', (e) => { /* ... (tidak berubah dari versi inti) ... */ });
-
+    taskList.addEventListener('click', (e) => {
+        const taskLi = e.target.closest('.task-item');
+        if (!taskLi) return;
+        const taskId = parseInt(taskLi.getAttribute('data-id'));
+        
+        if (e.target.matches('.delete-btn')) {
+            tasks = tasks.filter(task => task.id !== taskId);
+        } else {
+            const taskToUpdate = tasks.find(t => t.id === taskId);
+            if (taskToUpdate) {
+                taskToUpdate.completed = !taskToUpdate.completed;
+            }
+        }
+        saveTasks();
+        renderTasks();
+    });
     renderTasks();
 });
