@@ -25,7 +25,7 @@ const closeDeepDiveBtn = document.getElementById('closeDeepDiveBtn');
 // --- Fungsi Inisialisasi & Logika Kunci API ---
 function initializeAI(apiKey) {
     ai = new GoogleGenerativeAI(apiKey);
-    model = ai.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    model = ai.getGenerativeModel({ model: "gemini-2.5" });
 }
 
 function checkAndAskForKey() {
