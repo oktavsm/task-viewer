@@ -1,16 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tugas Kuliah Manager</title>
+    <title>Catatan Tugasku</title>
     <link rel="icon" type="image/x-icon" href="./favicon.ico">
     <link rel="shortcut icon" type="image/x-icon" href="./favicon.ico">
-
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=1.0">
 </head>
-
 <body>
     <div id="apiKeyModal" class="modal-overlay">
         <div class="modal-content">
@@ -22,28 +19,18 @@
         </div>
     </div>
 
-    <div id="deepDiveModal" class="modal-overlay">
-        <div class="modal-content">
-            <button class="close-btn" id="closeDeepDiveBtn">&times;</button>
-            <h2 id="deepDiveTitle">Hasil Deep Dive</h2>
-            <div id="deepDiveResult">
-            </div>
-        </div>
-    </div>
-
     <div class="container">
         <header>
             <h1>📝 Catatan Tugasku</h1>
             <button id="themeToggle" title="Ganti Tema">🌙</button>
         </header>
         <form id="taskForm">
-            <input type="text" id="taskInput" placeholder="Tulis tugas besarmu di sini..." required>
+            <input type="text" id="taskInput" placeholder="Contoh: Laporan praktikum Jarkom deadline besok jam 10 malam" required>
             <button type="submit">Tambah</button>
         </form>
         <ul id="taskList"></ul>
     </div>
 
-    <script type="module" src="script.js?v=3.0"></script>
+    <script type="module" src="script.js?v=1.0"></script>
 </body>
-
 </html>
