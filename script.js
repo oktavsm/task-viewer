@@ -39,7 +39,7 @@ function initializeAI(apiKey) {
     ai = new GoogleGenerativeAI(apiKey);
     // KODE BARU (ganti menjadi ini)
     // GANTI MENJADI
-    model = ai.getGenerativeModel({ model: "gemini-pro" });
+    model = ai.getGenerativeModel({ model: "gemini-2.5-flash" });
 }
 
 // --- Fungsi Pengecekan Kunci API ---
